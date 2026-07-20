@@ -1,9 +1,11 @@
-package com.augustine.gplfantasyleaague.domain.club;
+package com.augustine.gplfantasyleaague.domain.club.entity;
 
-import com.augustine.gplfantasyleaague.domain.gameweek.Fixture;
-import com.augustine.gplfantasyleaague.domain.player.Player;
+import com.augustine.gplfantasyleaague.domain.gameweek.entity.Fixture;
+import com.augustine.gplfantasyleaague.domain.player.entity.Player;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +42,9 @@ public class Club {
     private Integer foundedYear;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
-    private Status status;
+    private ClubStatus clubStatus;
 
     @OneToMany(mappedBy = "club")
     private List<Player> players = new ArrayList<>();

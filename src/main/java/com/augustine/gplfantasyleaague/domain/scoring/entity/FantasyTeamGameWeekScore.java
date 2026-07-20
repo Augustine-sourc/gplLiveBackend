@@ -1,7 +1,7 @@
-package com.augustine.gplfantasyleaague.domain.scoring;
+package com.augustine.gplfantasyleaague.domain.scoring.entity;
 
 import com.augustine.gplfantasyleaague.domain.fantasy.entity.FantasyTeam;
-import com.augustine.gplfantasyleaague.domain.gameweek.Gameweek;
+import com.augustine.gplfantasyleaague.domain.gameweek.entity.Gameweek;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -1,5 +1,6 @@
-package com.augustine.gplfantasyleaague.domain.auth;
+package com.augustine.gplfantasyleaague.domain.auth.entity;
 
+import com.augustine.gplfantasyleaague.domain.club.entity.Club;
 import com.augustine.gplfantasyleaague.domain.engagement.entity.Discussion;
 import com.augustine.gplfantasyleaague.domain.engagement.entity.MotmVotes;
 import com.augustine.gplfantasyleaague.domain.engagement.entity.Notification;
@@ -40,6 +41,15 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @ManyToOne
+    @JoinColumn(name = "favourite_club_id")
+    private Club favouriteClub;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    @Builder.Default
+    private Role role = Role.USER;
 
     @OneToOne(mappedBy = "user")
     private FantasyTeam fantasyTeam;

@@ -1,8 +1,10 @@
-package com.augustine.gplfantasyleaague.domain.engagement;
+package com.augustine.gplfantasyleaague.domain.engagement.entity;
 
-import com.augustine.gplfantasyleaague.domain.auth.User;
+import com.augustine.gplfantasyleaague.domain.auth.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -32,6 +34,7 @@ public class Notification {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
     private NotificationType type;

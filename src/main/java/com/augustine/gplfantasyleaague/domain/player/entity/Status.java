@@ -1,4 +1,4 @@
-package com.augustine.gplfantasyleaague.domain.player;
+package com.augustine.gplfantasyleaague.domain.player.entity;
 
 public enum Status {
     AVAILABLE,

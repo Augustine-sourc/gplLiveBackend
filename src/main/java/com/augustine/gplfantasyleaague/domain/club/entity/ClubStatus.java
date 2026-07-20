@@ -1,6 +1,6 @@
 package com.augustine.gplfantasyleaague.domain.club.entity;
 
-public enum Status {
+public enum ClubStatus {
     ACTIVE,
     RELEGATED,
     WITHDRAWN,

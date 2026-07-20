@@ -1,4 +1,11 @@
 package com.augustine.gplfantasyleaague.domain.engagement.repository;
 
-public interface DiscussionRepository extends org.springframework.data.jpa.repository.JpaRepository<com.augustine.gplfantasyleaague.domain.engagement.entity.Discussion, java.lang.Integer> {
+import com.augustine.gplfantasyleaague.domain.engagement.dtos.DiscussionResponse;
+import com.augustine.gplfantasyleaague.domain.engagement.entity.Discussion;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface DiscussionRepository extends JpaRepository<Discussion, Integer> {
+    List<Discussion> findByFixtureId(Integer fixtureId);
 }

@@ -1,5 +1,5 @@
 -- 1. Create the Fixture Status ENUM
-CREATE TYPE fixture_status AS ENUM ('SCHEDULED', 'LIVE', 'FINISHED');
+CREATE TYPE fixture_status AS ENUM ('SCHEDULED', 'LIVE', 'FINISHED','POSTPONED');
 
 -- 2. Create the Table
 CREATE TABLE fixtures (

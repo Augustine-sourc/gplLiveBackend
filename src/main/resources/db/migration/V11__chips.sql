@@ -1,4 +1,4 @@
-CREATE TYPE chip_enum AS ENUM ('TRIPLE_CAPTAIN', 'WILDCARD', 'FREEHIT', 'BENCH_BOOST');
+CREATE TYPE chip_enum AS ENUM ('TRIPLE_CAPTAIN', 'WILDCARD', 'FREEHIT', 'BENCH_BOOST','WILDCARD_2');
 CREATE TABLE chips (
                        id SERIAL PRIMARY KEY,
                        fantasy_team_id INT NOT NULL REFERENCES fantasy_teams(id) ON DELETE CASCADE,

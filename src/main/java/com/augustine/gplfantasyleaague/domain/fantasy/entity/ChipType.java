@@ -1,8 +1,9 @@
-package com.augustine.gplfantasyleaague.domain.fantasy;
+package com.augustine.gplfantasyleaague.domain.fantasy.entity;
 
 public enum ChipType {
     TRIPLE_CAPTAIN,
     WILDCARD,
     FREEHIT,
-    BENCH_BOOST
+    BENCH_BOOST,
+    WILDCARD_2,
 }

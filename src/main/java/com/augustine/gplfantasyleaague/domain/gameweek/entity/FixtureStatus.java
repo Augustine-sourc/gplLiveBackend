@@ -1,8 +1,9 @@
-package com.augustine.gplfantasyleaague.domain.gameweek;
+package com.augustine.gplfantasyleaague.domain.gameweek.entity;
 
 
 public enum FixtureStatus {
     SCHEDULED,
     LIVE,
-    FINISHED
+    FINISHED,
+    POSTPONED
 }

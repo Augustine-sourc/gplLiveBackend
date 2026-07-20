@@ -1,3 +1,35 @@
+server:
+  # Render (and most PaaS hosts) assign a random port at runtime via the PORT
+  # env var and route external traffic to it - the app must bind to that, not
+  # a fixed 8080, or the platform can't reach it. Falls back to 8080 for
+  # local dev where PORT isn't set.
+  port: ${PORT:8080}
+
 spring:
+  # Auto-loads application-local.yml (gitignored, holds your real local secrets)
+  # so running the app in IntelliJ works with no extra setup. Override this
+  # (e.g. -Dspring.profiles.active=prod, or unset it) for other environments.
+  profiles:
+    active: local
   application:
     name: gplFantasyLeaague
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET}
+  datasource:
+    password: ${DB_PASSWORD}
+    username: ${DB_USERNAME}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fantasy_leadue}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+logging:
+  level:
+    org.flywaydb: INFO

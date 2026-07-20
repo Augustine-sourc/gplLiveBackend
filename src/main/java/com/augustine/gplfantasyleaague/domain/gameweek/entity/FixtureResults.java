@@ -1,4 +1,4 @@
-package com.augustine.gplfantasyleaague.domain.gameweek;
+package com.augustine.gplfantasyleaague.domain.gameweek.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

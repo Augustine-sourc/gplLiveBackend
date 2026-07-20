@@ -1,8 +1,10 @@
-package com.augustine.gplfantasyleaague.domain.gameweek;
+package com.augustine.gplfantasyleaague.domain.gameweek.entity;
 
 import com.augustine.gplfantasyleaague.domain.fantasy.entity.Chip;
+import com.augustine.gplfantasyleaague.domain.fantasy.entity.FreeHitSnapShot;
 import com.augustine.gplfantasyleaague.domain.fantasy.entity.Transfer;
-import com.augustine.gplfantasyleaague.domain.scoring.FantasyTeamGameWeekScore;
+import com.augustine.gplfantasyleaague.domain.player.entity.PlayerPrice;
+import com.augustine.gplfantasyleaague.domain.scoring.entity.FantasyTeamGameWeekScore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,8 +36,9 @@ public class Gameweek {
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
+    @Builder.Default
     @Column(name = "is_current")
-    private Boolean isCurrent;
+    private Boolean isCurrent = false;
 
     @Column(name = "deadline")
     private LocalDateTime deadline;
@@ -51,5 +54,11 @@ public class Gameweek {
 
     @OneToMany(mappedBy = "gameweek")
     private List<FantasyTeamGameWeekScore> fantasyTeamGameWeekScores = new ArrayList<>();
+
+    @OneToMany(mappedBy = "gameweek")
+    private List<PlayerPrice> prices = new ArrayList<>();
+
+    @OneToMany(mappedBy = "gameweek")
+    private List<FreeHitSnapShot> freeHitSnapShots = new ArrayList<>();
 
 }

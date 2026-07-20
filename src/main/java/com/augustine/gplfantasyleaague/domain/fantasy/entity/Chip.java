@@ -1,8 +1,10 @@
-package com.augustine.gplfantasyleaague.domain.fantasy;
+package com.augustine.gplfantasyleaague.domain.fantasy.entity;
 
-import com.augustine.gplfantasyleaague.domain.gameweek.Gameweek;
+import com.augustine.gplfantasyleaague.domain.gameweek.entity.Gameweek;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -26,6 +28,7 @@ public class Chip {
     @JoinColumn(name = "gameweek_id")
     private Gameweek gameweek;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(name = "chip_type")
     private ChipType chipType;

@@ -1,7 +1,7 @@
-package com.augustine.gplfantasyleaague.domain.fantasy;
+package com.augustine.gplfantasyleaague.domain.fantasy.entity;
 
-import com.augustine.gplfantasyleaague.domain.auth.User;
-import com.augustine.gplfantasyleaague.domain.scoring.FantasyTeamGameWeekScore;
+import com.augustine.gplfantasyleaague.domain.auth.entity.User;
+import com.augustine.gplfantasyleaague.domain.scoring.entity.FantasyTeamGameWeekScore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -37,12 +37,18 @@ public class FantasyTeam {
     @Column(name = "total_points")
     private Integer totalPoints = 0;
 
+    // Starts at 1 (the standard fantasy-football weekly allowance) - grows
+    // by 1 each new gameweek via FantasyTeamService.grantWeeklyFreeTransfers,
+    // capped at a bank of 2, rather than being a one-time stockpile.
     @Builder.Default
     @Column(name = "transfer_points")
-    private Integer transferPoints = 5;
+    private Integer transferPoints = 1;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "free_hit_budget_snapshot", precision = 15, scale = 2)
+    private BigDecimal freeHitBudgetSnapshot;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
@@ -58,4 +64,7 @@ public class FantasyTeam {
 
     @OneToMany(mappedBy = "fantasyTeam")
     private List<FantasyTeamGameWeekScore> fantasyTeamGameWeekScores = new ArrayList<>();
+
+    @OneToMany(mappedBy = "fantasyTeam")
+    private List<FreeHitSnapShot> freeHitSnapShots = new ArrayList<>();
 }

@@ -1,12 +1,16 @@
-package com.augustine.gplfantasyleaague.domain.player;
+package com.augustine.gplfantasyleaague.domain.player.entity;
 
-import com.augustine.gplfantasyleaague.domain.club.Club;
-import com.augustine.gplfantasyleaague.domain.engagement.MotmVotes;
-import com.augustine.gplfantasyleaague.domain.fantasy.FantasyTeamPlayer;
-import com.augustine.gplfantasyleaague.domain.fantasy.Transfer;
-import com.augustine.gplfantasyleaague.domain.scoring.PlayerGameWeekStats;
+import com.augustine.gplfantasyleaague.domain.club.entity.Club;
+import com.augustine.gplfantasyleaague.domain.engagement.entity.MotmVotes;
+import com.augustine.gplfantasyleaague.domain.fantasy.entity.FantasyTeamPlayer;
+import com.augustine.gplfantasyleaague.domain.fantasy.entity.FreeHitSnapShot;
+import com.augustine.gplfantasyleaague.domain.fantasy.entity.Transfer;
+import com.augustine.gplfantasyleaague.domain.scoring.entity.PlayerGameWeekStats;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +34,7 @@ public class Player {
     @JoinColumn(name = "club_id", nullable = false)
     private Club club;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(name = "position", nullable = false)
     private Position position;
@@ -40,6 +45,7 @@ public class Player {
     @Column(name = "photo_url")
     private String photoUrl;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Status status;
@@ -61,5 +67,11 @@ public class Player {
 
     @OneToMany(mappedBy = "player")
     private List<PlayerGameWeekStats> playerGameWeekStats = new ArrayList<>();
+
+    @OneToMany(mappedBy = "player")
+    private List<PlayerPrice> prices = new ArrayList<>();
+
+    @OneToMany(mappedBy = "player")
+    private List<FreeHitSnapShot> freeHitSnapShots = new ArrayList<>();
 
 }

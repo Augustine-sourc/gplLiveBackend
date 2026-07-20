@@ -1,4 +1,4 @@
-package com.augustine.gplfantasyleaague.domain.engagement;
+package com.augustine.gplfantasyleaague.domain.engagement.entity;
 
 public enum NotificationType {
     DEADLINE,

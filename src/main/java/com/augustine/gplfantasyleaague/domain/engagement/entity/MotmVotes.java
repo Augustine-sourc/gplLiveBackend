@@ -1,8 +1,8 @@
-package com.augustine.gplfantasyleaague.domain.engagement;
+package com.augustine.gplfantasyleaague.domain.engagement.entity;
 
-import com.augustine.gplfantasyleaague.domain.auth.User;
-import com.augustine.gplfantasyleaague.domain.gameweek.Fixture;
-import com.augustine.gplfantasyleaague.domain.player.Player;
+import com.augustine.gplfantasyleaague.domain.auth.entity.User;
+import com.augustine.gplfantasyleaague.domain.gameweek.entity.Fixture;
+import com.augustine.gplfantasyleaague.domain.player.entity.Player;
 import jakarta.persistence.*;
 import lombok.*;
 

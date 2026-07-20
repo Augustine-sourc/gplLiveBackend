@@ -1,11 +1,13 @@
-package com.augustine.gplfantasyleaague.domain.gameweek;
+package com.augustine.gplfantasyleaague.domain.gameweek.entity;
 
 import com.augustine.gplfantasyleaague.domain.club.entity.Club;
 import com.augustine.gplfantasyleaague.domain.engagement.entity.Discussion;
 import com.augustine.gplfantasyleaague.domain.engagement.entity.MotmVotes;
-import com.augustine.gplfantasyleaague.domain.scoring.PlayerGameWeekStats;
+import com.augustine.gplfantasyleaague.domain.scoring.entity.PlayerGameWeekStats;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,14 +38,15 @@ public class Fixture {
     private Club awayClub;
 
     @Column(name = "match_date")
-    private LocalDateTime startDate;
+    private LocalDateTime matchDate;
 
     @Column(name = "venue")
     private String venue;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private FixtureStatus fixtureStatus;
+    private FixtureStatus fixtureStatus = FixtureStatus.SCHEDULED;
 
     @OneToMany(mappedBy = "fixture")
     private List<MotmVotes> motmVotesList = new ArrayList<>();

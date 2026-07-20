@@ -1,4 +1,4 @@
-package com.augustine.gplfantasyleaague.domain.scoring.dtos;
+package com.augustine.gplfantasyleaague.domain.fantasy.dto;
 
 import com.augustine.gplfantasyleaague.domain.fantasy.entity.ChipType;
 import lombok.*;
@@ -14,5 +14,6 @@ public class ChipResponse {
     private Integer id;
     private String fantasyTeamName;
     private ChipType chipType;
+    private Integer gameweekNumber;
     private LocalDateTime usedAt;
 }
