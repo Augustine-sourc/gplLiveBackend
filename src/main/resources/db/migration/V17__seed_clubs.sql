@@ -1,0 +1,18 @@
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Aduana Stars FC','ASF',NULL,'Nana Agyemang Badu I Park','Dormaa Ahenkro',1985,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Asante Kotoko SC','AKS',NULL,'Baba Yara Sports Stadium','Kumasi',1935,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Hearts of Oak','HOA',NULL,'Accra Sports Stadium','Accra',1911,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('FC Samartex','FCS',NULL,'Sameraboi Community Park','Wassa Amenfi',1995,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Bibiani Gold Stars FC','BGS',NULL,'Duns Park','Bibiani',1998,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Medeama SC','MSC',NULL,'Akoon Community Park','Tarkwa',2002,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Bechem United FC','BUFC',NULL,'Bechem Park','Bechem',1966,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Berekum Chelsea FC','BCFC',NULL,'Golden City Park','Berekum',2004,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Karela United FC','KUFC',NULL,'Nduom Sports Stadium','Elmina',2013,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Hohoe United Football Club','HUFC',NULL,'Hohoe Sports Stadium','Hohoe',1981,'RELEGATED');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Nations Football Club','NFC',NULL,'Dr. Kwame Kyei Sports Complex','Abrankese',1996,'RELEGATED');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Basake Holy Stars FC','BHSFC',NULL,'Crosby Awuah Memorial Park','Aiyinase',1998,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Swedru All Blacks United FC','SABUFC',NULL,'Swedru Sports Stadium','Agona Swedru',1945,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Young Apostles FC','YAFC',NULL,'Nana Afrefa Nketia VII Complex','Wenchi',2012,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Dreams FC','DFC',NULL,'Dawu Sports Stadium','Dawu Akuapem',2009,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Vision FC','VFC',NULL,'Nii Adjei Kraku II Sports Complex','Tema New Town',1999,'ACTIVE');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Eleven Wonders FC','EWFC',NULL,'Ohene Ameyaw Park','Techiman',2017,'RELEGATED');
+INSERT INTO real_clubs(full_name,short_name,logo_url,home_ground,city,founded_year,status) VALUES ('Hearts of Lions','HOL',NULL,'Kpando Sports Stadium','Kpando',2002,'ACTIVE');
