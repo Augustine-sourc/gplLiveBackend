@@ -10,6 +10,7 @@ import com.augustine.gplfantasyleaague.domain.auth.repository.UserRepository;
 import com.augustine.gplfantasyleaague.domain.auth.security.JwtService;
 import com.augustine.gplfantasyleaague.domain.club.entity.Club;
 import com.augustine.gplfantasyleaague.domain.club.repository.ClubRepository;
+import com.augustine.gplfantasyleaague.domain.subscription.service.SubscriptionService;
 import com.augustine.gplfantasyleaague.exception.EmailAlreadyExistsException;
 import com.augustine.gplfantasyleaague.exception.InvalidCredentialsException;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
@@ -31,14 +32,16 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsServiceImpl userDetailsService;
     private final ClubRepository clubRepository;
+    private final SubscriptionService subscriptionService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository, SubscriptionService subscriptionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
         this.clubRepository = clubRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     public AuthResponse register(RegisterRequest request){
@@ -143,6 +146,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .favouriteClub(clubSummary)
+                .premium(subscriptionService.isPremium(user.getId()))
                 .build();
     }
 }

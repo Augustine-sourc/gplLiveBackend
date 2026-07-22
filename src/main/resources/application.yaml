@@ -30,6 +30,24 @@ spring:
         format_sql: true
     open-in-view: false
 
+# Paystack (Premium subscription payments). Test-mode keys from
+# https://dashboard.paystack.com/#/settings/developer - set PAYSTACK_SECRET_KEY
+# and PAYSTACK_PUBLIC_KEY as env vars the same way JWT_SECRET/DATABASE_URL
+# are set (see DEPLOYMENT.md). premium-price-pesewas defaults to 100 (GH1)
+# for testing - Paystack amounts are always in the currency's smallest
+# subunit, so GHS 1 = 100 pesewas.
+paystack:
+  secret-key: ${PAYSTACK_SECRET_KEY:}
+  public-key: ${PAYSTACK_PUBLIC_KEY:}
+  premium-price-pesewas: ${PREMIUM_PRICE_PESEWAS:100}
+  premium-days: ${PREMIUM_DAYS:30}
+  # Paystack redirects the checkout WebView here after payment - the
+  # frontend watches for this URL to know the flow finished and closes the
+  # WebView itself, so this endpoint just needs to exist, not render
+  # anything meaningful. Optional - Paystack falls back to its own generic
+  # success page if left blank.
+  callback-url: ${PAYSTACK_CALLBACK_URL:}
+
 logging:
   level:
     org.flywaydb: INFO

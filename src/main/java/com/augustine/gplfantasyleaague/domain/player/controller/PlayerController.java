@@ -1,12 +1,15 @@
 package com.augustine.gplfantasyleaague.domain.player.controller;
 
+import com.augustine.gplfantasyleaague.domain.player.dto.PlayerAnalysisResponse;
 import com.augustine.gplfantasyleaague.domain.player.dto.PlayerRequest;
 import com.augustine.gplfantasyleaague.domain.player.dto.PlayerResponse;
 import com.augustine.gplfantasyleaague.domain.player.entity.Position;
+import com.augustine.gplfantasyleaague.domain.player.service.PlayerAnalysisService;
 import com.augustine.gplfantasyleaague.domain.player.service.PlayerService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,9 +18,11 @@ import java.util.List;
 @RequestMapping("/players")
 public class PlayerController {
     private final PlayerService playerService;
+    private final PlayerAnalysisService playerAnalysisService;
 
-    public PlayerController(PlayerService playerService) {
+    public PlayerController(PlayerService playerService, PlayerAnalysisService playerAnalysisService) {
         this.playerService = playerService;
+        this.playerAnalysisService = playerAnalysisService;
     }
 
     @GetMapping
@@ -38,6 +43,16 @@ public class PlayerController {
     @GetMapping("/club/{clubId}")
     public ResponseEntity<List<PlayerResponse>> getPlayersByClub(@PathVariable Integer clubId){
         return ResponseEntity.ok(playerService.getPlayersByClub(clubId));
+    }
+
+    // Reused by the Player Details screen wherever it's opened from (Draft,
+    // Transfers, Pitch view) - free-tier fields always come back, the
+    // premium analysis section only populates for subscribed users (see
+    // PlayerAnalysisService.analyze).
+    @GetMapping("/{id}/analysis")
+    public ResponseEntity<PlayerAnalysisResponse> getPlayerAnalysis(@PathVariable Integer id){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(playerAnalysisService.analyze(id, email));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

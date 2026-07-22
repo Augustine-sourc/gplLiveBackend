@@ -39,8 +39,26 @@ public class SecurityConfig {
                                 // before the user has a token. Writes (POST/PUT) stay admin-only via
                                 // the existing @PreAuthorize on ClubController.
                                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/clubs", "/clubs/**").permitAll()
+                                // Paystack calls this directly (server-to-server) with no
+                                // way to attach our JWT - trust comes from the HMAC
+                                // signature check in PaystackService instead of auth here.
+                                .requestMatchers("/payments/webhook").permitAll()
                                 .anyRequest().authenticated()
         );
+
+        // Without this, Spring Security has no registered AuthenticationEntryPoint
+        // (stateless JWT setup, no form login) and falls back to
+        // Http403ForbiddenEntryPoint - so a missing/expired/invalid token on a
+        // protected endpoint returns 403 instead of 401. The frontend only
+        // treats 401 as "your session is invalid, log out" (403 is reserved for
+        // authenticated-but-forbidden, e.g. touching another user's resource),
+        // so without this fix a stale token (e.g. left over from testing against
+        // a different backend instance/secret) just makes every screen silently
+        // fail forever instead of prompting a fresh login.
+        http.exceptionHandling(ex -> ex.authenticationEntryPoint(
+                (request, response, authException) ->
+                        response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
+        ));
 
         http.sessionManagement(session-> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

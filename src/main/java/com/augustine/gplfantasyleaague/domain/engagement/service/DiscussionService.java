@@ -8,6 +8,7 @@ import com.augustine.gplfantasyleaague.domain.engagement.entity.Discussion;
 import com.augustine.gplfantasyleaague.domain.engagement.repository.DiscussionRepository;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.Fixture;
 import com.augustine.gplfantasyleaague.domain.gameweek.repository.FixtureRepository;
+import com.augustine.gplfantasyleaague.domain.subscription.service.SubscriptionService;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -19,11 +20,13 @@ public class DiscussionService {
     private final UserRepository userRepository;
     private final DiscussionRepository discussionRepository;
     private final FixtureRepository fixtureRepository;
+    private final SubscriptionService subscriptionService;
 
-    public DiscussionService(UserRepository userRepository, DiscussionRepository discussionRepository, FixtureRepository fixtureRepository) {
+    public DiscussionService(UserRepository userRepository, DiscussionRepository discussionRepository, FixtureRepository fixtureRepository, SubscriptionService subscriptionService) {
         this.userRepository = userRepository;
         this.discussionRepository = discussionRepository;
         this.fixtureRepository = fixtureRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     public DiscussionResponse addDiscussion(DiscussionRequest request, String email){
@@ -57,6 +60,7 @@ public class DiscussionService {
                 .fixtureId(discussion.getFixture().getId())
                 .userId(discussion.getUser().getId())
                 .username(discussion.getUser().getUsername())
+                .userPremium(subscriptionService.isPremium(discussion.getUser().getId()))
                 .message(discussion.getMessage())
                 .createdAt(discussion.getCreatedAt())
                 .build();

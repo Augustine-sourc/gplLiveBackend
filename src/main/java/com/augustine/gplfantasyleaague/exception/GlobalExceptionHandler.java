@@ -121,6 +121,13 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex, request);
     }
 
+    // 502 Bad Gateway: Paystack itself failed, or returned something we
+    // can't trust (bad init response, unverifiable webhook signature).
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentException(PaymentException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, ex, request);
+    }
+
     // 400 Bad Request: Bean Validation failures on @Valid @RequestBody DTOs
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {

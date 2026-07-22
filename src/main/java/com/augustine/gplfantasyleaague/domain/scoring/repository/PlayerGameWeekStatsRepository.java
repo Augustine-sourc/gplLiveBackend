@@ -13,4 +13,9 @@ public interface PlayerGameWeekStatsRepository extends JpaRepository<PlayerGameW
     List<PlayerGameWeekStats> findByFixtureId(Integer fixtureId);
 
     List<PlayerGameWeekStats> findByPlayerIdAndFixtureIdIn(Integer id, List<Integer> fixtureIds);
+
+    // Most-recent-first, driven by the fixture's actual kickoff date rather
+    // than insertion order - PlayerAnalysisService relies on this ordering
+    // for "recent form" (last 5) and the trend calculation.
+    List<PlayerGameWeekStats> findByPlayer_IdOrderByFixture_MatchDateDesc(Integer playerId);
 }

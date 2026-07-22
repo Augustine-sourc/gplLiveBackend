@@ -13,4 +13,6 @@ public class UserProfileResponse {
     private String email;
     private String fullName;
     private ClubSummary favouriteClub;
+    // Drives the premium badge next to the username throughout the app.
+    private boolean premium;
 }
