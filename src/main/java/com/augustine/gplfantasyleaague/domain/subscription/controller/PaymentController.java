@@ -20,12 +20,16 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final PaystackService paystackService;
-    private final ObjectMapper objectMapper;
+    // Plain instance rather than an injected Spring bean - this project's
+    // Jackson auto-configuration isn't registering a default ObjectMapper
+    // bean (Spring Boot 4.1 failed to autowire one here), and webhook
+    // parsing doesn't need the app's globally-configured mapper anyway -
+    // it's just reading Paystack's raw JSON, not producing an API response.
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public PaymentController(PaymentService paymentService, PaystackService paystackService, ObjectMapper objectMapper) {
+    public PaymentController(PaymentService paymentService, PaystackService paystackService) {
         this.paymentService = paymentService;
         this.paystackService = paystackService;
-        this.objectMapper = objectMapper;
     }
 
     // Starts a premium purchase for the logged-in user. Returns Paystack's
