@@ -122,13 +122,6 @@
             <version>2.7.0</version>
         </dependency>
 
-        <!-- Sends the email-verification code on registration (JavaMailSender).
-             Configured for Gmail SMTP via MAIL_USERNAME/MAIL_PASSWORD env vars
-             - see application.yaml. -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
     </dependencies>
 
     <build>

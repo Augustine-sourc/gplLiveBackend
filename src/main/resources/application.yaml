@@ -29,24 +29,22 @@ spring:
       hibernate:
         format_sql: true
     open-in-view: false
-  # Sends the email-verification code on registration. MAIL_USERNAME is the
-  # full Gmail address to send FROM; MAIL_PASSWORD is a Google Account "App
-  # Password" (16 chars, generated under Google Account > Security > 2-Step
-  # Verification > App passwords) - NOT the regular account password, Gmail
-  # rejects SMTP logins with the real password. Left unset, sending fails and
-  # AuthService logs it but doesn't block registration - the account is
-  # created but the user needs "resend code" once mail is configured.
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+
+# Sends the email-verification code on registration via Brevo's HTTPS API
+# (not raw SMTP - Render blocks outbound traffic on SMTP ports 25/465/587 for
+# free web services, so a direct SMTP connection always times out there;
+# HTTPS on 443 is unaffected). api-key comes from Brevo > SMTP & API > API
+# Keys. sender-email must be a sender verified in Brevo (Senders, Domains &
+# Dedicated IPs > Senders - verified via a code emailed to that address, no
+# domain ownership required). Set BREVO_API_KEY/BREVO_SENDER_EMAIL as env
+# vars the same way JWT_SECRET/DATABASE_URL are set (see DEPLOYMENT.md). Left
+# unset, sending fails and AuthService logs it but doesn't block registration
+# - the account is created but the user needs "resend code" once mail is
+# configured.
+brevo:
+  api-key: ${BREVO_API_KEY:}
+  sender-email: ${BREVO_SENDER_EMAIL:}
+  sender-name: ${BREVO_SENDER_NAME:GPL Live}
 
 # Paystack (Premium subscription payments). Test-mode keys from
 # https://dashboard.paystack.com/#/settings/developer - set PAYSTACK_SECRET_KEY
