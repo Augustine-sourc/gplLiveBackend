@@ -1,6 +1,7 @@
 package com.augustine.gplfantasyleaague.domain.auth.controller;
 
 import com.augustine.gplfantasyleaague.domain.auth.dto.AuthResponse;
+import com.augustine.gplfantasyleaague.domain.auth.dto.GoogleAuthRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.LoginRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UpdateFavouriteClubRequest;
@@ -30,6 +31,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody @Valid LoginRequest request){
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleSignIn(@RequestBody @Valid GoogleAuthRequest request){
+        return ResponseEntity.ok(authService.loginWithGoogle(request.getIdToken()));
     }
 
     @GetMapping("/users/me")

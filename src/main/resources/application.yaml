@@ -48,6 +48,18 @@ paystack:
   # success page if left blank.
   callback-url: ${PAYSTACK_CALLBACK_URL:}
 
+
+# "Continue with Google" sign-in. web-client-id is the OAuth 2.0 Client ID
+# (type: Web application) created in Google Cloud Console > APIs & Services >
+# Credentials - it's the audience GoogleIdTokenVerifier checks the ID token
+# against. Set GOOGLE_WEB_CLIENT_ID the same way JWT_SECRET/DATABASE_URL are
+# set (see DEPLOYMENT.md). Left blank, Google sign-in requests fail closed
+# (GoogleTokenVerifier refuses to verify anything against an empty audience)
+# rather than silently accepting tokens meant for a different app.
+google:
+  oauth:
+    web-client-id: ${GOOGLE_WEB_CLIENT_ID:}
+
 logging:
   level:
     org.flywaydb: INFO

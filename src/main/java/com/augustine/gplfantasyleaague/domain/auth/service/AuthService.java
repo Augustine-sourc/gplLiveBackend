@@ -7,6 +7,8 @@ import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UserProfileResponse;
 import com.augustine.gplfantasyleaague.domain.auth.entity.User;
 import com.augustine.gplfantasyleaague.domain.auth.repository.UserRepository;
+import com.augustine.gplfantasyleaague.domain.auth.security.GoogleTokenVerifier;
+import com.augustine.gplfantasyleaague.domain.auth.security.GoogleUserInfo;
 import com.augustine.gplfantasyleaague.domain.auth.security.JwtService;
 import com.augustine.gplfantasyleaague.domain.club.entity.Club;
 import com.augustine.gplfantasyleaague.domain.club.repository.ClubRepository;
@@ -23,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -33,8 +36,9 @@ public class AuthService {
     private final UserDetailsServiceImpl userDetailsService;
     private final ClubRepository clubRepository;
     private final SubscriptionService subscriptionService;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository, SubscriptionService subscriptionService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository, SubscriptionService subscriptionService, GoogleTokenVerifier googleTokenVerifier) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -42,6 +46,7 @@ public class AuthService {
         this.userDetailsService = userDetailsService;
         this.clubRepository = clubRepository;
         this.subscriptionService = subscriptionService;
+        this.googleTokenVerifier = googleTokenVerifier;
     }
 
     public AuthResponse register(RegisterRequest request){
@@ -109,6 +114,69 @@ public class AuthService {
 //        response.setToken(token);
 //        response.setUsername(user.getUsername());
 //        return response;
+    }
+
+    // "Continue with Google": verifies the ID token the frontend obtained
+    // from Google, then either logs in the existing user with that email or
+    // creates a brand-new one. Google-created accounts get no
+    // favouriteClub - the frontend detects that (same as the demo-user
+    // flow) and routes to PickClubScreen, since Google doesn't know which
+    // GPL club someone supports.
+    public AuthResponse loginWithGoogle(String idToken){
+        GoogleUserInfo googleUser = googleTokenVerifier.verify(idToken);
+
+        if (!googleUser.emailVerified()) {
+            throw new InvalidCredentialsException("Google account email is not verified");
+        }
+
+        User user = userRepository.findByEmail(googleUser.email())
+                .orElseGet(() -> createUserFromGoogle(googleUser));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtService.generateToken(userDetails);
+
+        AuthResponse response = new AuthResponse();
+        response.setToken(token);
+        response.setUsername(user.getUsername());
+        return response;
+    }
+
+    private User createUserFromGoogle(GoogleUserInfo googleUser){
+        String username = generateUniqueUsername(googleUser.email());
+        // Google accounts never use password login, so this value is never
+        // shown to or usable by the user - it just satisfies the column's
+        // NOT NULL constraint without a schema change. Encoded the same way
+        // a real password would be, so nothing downstream needs to know the
+        // difference.
+        String placeholderPassword = passwordEncoder.encode(UUID.randomUUID().toString());
+
+        User newUser = User.builder()
+                .email(googleUser.email())
+                .username(username)
+                .password(placeholderPassword)
+                .fullName(googleUser.name())
+                .favouriteClub(null)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        return userRepository.save(newUser);
+    }
+
+    private String generateUniqueUsername(String email){
+        String localPart = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        String base = localPart.replaceAll("[^a-zA-Z0-9_]", "");
+        if (base.isBlank()) {
+            base = "user";
+        }
+
+        String candidate = base;
+        int suffix = 1;
+        while (userRepository.existsByUsername(candidate)) {
+            candidate = base + suffix;
+            suffix++;
+        }
+        return candidate;
     }
 
     public UserProfileResponse getCurrentUser(String email){

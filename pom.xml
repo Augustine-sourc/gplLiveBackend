@@ -110,6 +110,17 @@
             <artifactId>rome</artifactId>
             <version>2.1.0</version>
         </dependency>
+
+        <!-- Verifies Google ID tokens for "Continue with Google" sign-in
+             (GoogleIdTokenVerifier). We only need the token-verification
+             piece, not a full OAuth client flow - that happens on the
+             frontend via expo-auth-session, which hands us the resulting
+             ID token to verify here. -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>2.7.0</version>
+        </dependency>
     </dependencies>
 
     <build>
