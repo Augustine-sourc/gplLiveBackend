@@ -51,6 +51,16 @@ public class User {
     @Builder.Default
     private Role role = Role.USER;
 
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private Boolean emailVerified = true;
+
+    @Column(name = "verification_code")
+    private String verificationCode;
+
+    @Column(name = "verification_code_expires_at")
+    private LocalDateTime verificationCodeExpiresAt;
+
     @OneToOne(mappedBy = "user")
     private FantasyTeam fantasyTeam;
 

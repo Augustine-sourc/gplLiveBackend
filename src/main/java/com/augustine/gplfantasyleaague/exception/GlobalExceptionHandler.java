@@ -103,6 +103,18 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex, request);
     }
 
+    // 403 Forbidden: Correct password, but the account's email hasn't been
+    // verified yet - distinct status from 401 so the frontend can tell
+    // "wrong password" apart from "right password, go verify your email"
+    // without having to string-match the error message.
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotVerified(
+            EmailNotVerifiedException ex,
+            HttpServletRequest request) {
+
+        return buildResponse(HttpStatus.FORBIDDEN, ex, request);
+    }
+
     // 400 Bad Request: Squad Tactics/Rule Violations
     @ExceptionHandler(InvalidSquadException.class)
     public ResponseEntity<ErrorResponse> handleInvalidSquad(InvalidSquadException ex, HttpServletRequest request) {

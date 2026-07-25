@@ -29,6 +29,24 @@ spring:
       hibernate:
         format_sql: true
     open-in-view: false
+  # Sends the email-verification code on registration. MAIL_USERNAME is the
+  # full Gmail address to send FROM; MAIL_PASSWORD is a Google Account "App
+  # Password" (16 chars, generated under Google Account > Security > 2-Step
+  # Verification > App passwords) - NOT the regular account password, Gmail
+  # rejects SMTP logins with the real password. Left unset, sending fails and
+  # AuthService logs it but doesn't block registration - the account is
+  # created but the user needs "resend code" once mail is configured.
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 # Paystack (Premium subscription payments). Test-mode keys from
 # https://dashboard.paystack.com/#/settings/developer - set PAYSTACK_SECRET_KEY
@@ -47,7 +65,6 @@ paystack:
   # anything meaningful. Optional - Paystack falls back to its own generic
   # success page if left blank.
   callback-url: ${PAYSTACK_CALLBACK_URL:}
-
 
 # "Continue with Google" sign-in. web-client-id is the OAuth 2.0 Client ID
 # (type: Web application) created in Google Cloud Console > APIs & Services >

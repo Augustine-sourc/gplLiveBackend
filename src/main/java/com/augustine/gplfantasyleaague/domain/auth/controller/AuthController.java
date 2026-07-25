@@ -1,11 +1,14 @@
 package com.augustine.gplfantasyleaague.domain.auth.controller;
 
 import com.augustine.gplfantasyleaague.domain.auth.dto.AuthResponse;
+import com.augustine.gplfantasyleaague.domain.auth.dto.EmailVerificationResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.GoogleAuthRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.LoginRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
+import com.augustine.gplfantasyleaague.domain.auth.dto.ResendVerificationRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UpdateFavouriteClubRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UserProfileResponse;
+import com.augustine.gplfantasyleaague.domain.auth.dto.VerifyEmailRequest;
 import com.augustine.gplfantasyleaague.domain.auth.service.AuthService;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.Valid;
@@ -24,8 +27,18 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody @Valid RegisterRequest request){
+    public ResponseEntity<EmailVerificationResponse> register(@RequestBody @Valid RegisterRequest request){
         return ResponseEntity.ok(authService.register(request));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<AuthResponse> verifyEmail(@RequestBody @Valid VerifyEmailRequest request){
+        return ResponseEntity.ok(authService.verifyEmail(request));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<EmailVerificationResponse> resendVerification(@RequestBody @Valid ResendVerificationRequest request){
+        return ResponseEntity.ok(authService.resendVerification(request.getEmail()));
     }
 
     @PostMapping("/login")

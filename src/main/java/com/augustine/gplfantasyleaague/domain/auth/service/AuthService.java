@@ -2,9 +2,11 @@ package com.augustine.gplfantasyleaague.domain.auth.service;
 
 import com.augustine.gplfantasyleaague.domain.auth.dto.AuthResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.ClubSummary;
+import com.augustine.gplfantasyleaague.domain.auth.dto.EmailVerificationResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.LoginRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UserProfileResponse;
+import com.augustine.gplfantasyleaague.domain.auth.dto.VerifyEmailRequest;
 import com.augustine.gplfantasyleaague.domain.auth.entity.User;
 import com.augustine.gplfantasyleaague.domain.auth.repository.UserRepository;
 import com.augustine.gplfantasyleaague.domain.auth.security.GoogleTokenVerifier;
@@ -14,6 +16,7 @@ import com.augustine.gplfantasyleaague.domain.club.entity.Club;
 import com.augustine.gplfantasyleaague.domain.club.repository.ClubRepository;
 import com.augustine.gplfantasyleaague.domain.subscription.service.SubscriptionService;
 import com.augustine.gplfantasyleaague.exception.EmailAlreadyExistsException;
+import com.augustine.gplfantasyleaague.exception.EmailNotVerifiedException;
 import com.augustine.gplfantasyleaague.exception.InvalidCredentialsException;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +27,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -37,8 +41,11 @@ public class AuthService {
     private final ClubRepository clubRepository;
     private final SubscriptionService subscriptionService;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final EmailService emailService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository, SubscriptionService subscriptionService, GoogleTokenVerifier googleTokenVerifier) {
+    private static final int VERIFICATION_CODE_VALID_MINUTES = 15;
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository, SubscriptionService subscriptionService, GoogleTokenVerifier googleTokenVerifier, EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -47,14 +54,21 @@ public class AuthService {
         this.clubRepository = clubRepository;
         this.subscriptionService = subscriptionService;
         this.googleTokenVerifier = googleTokenVerifier;
+        this.emailService = emailService;
     }
 
-    public AuthResponse register(RegisterRequest request){
+    // No longer returns a token - a freshly registered account can't log in
+    // until the emailed code is confirmed via verifyEmail(). See
+    // EmailVerificationResponse for why.
+    public EmailVerificationResponse register(RegisterRequest request){
         if(userRepository.existsByEmail(request.getEmail())){
             throw new EmailAlreadyExistsException("Email already exists");
         }
         Club favouriteClub = clubRepository.findById(request.getFavouriteClubId())
                 .orElseThrow(() -> new ResourceNotFoundException("Club with ID " + request.getFavouriteClubId() + " does not exist"));
+
+        String code = generateVerificationCode();
+
         User savedUser = User.builder()
                 .email(request.getEmail())
                 .username(request.getUsername())
@@ -63,15 +77,70 @@ public class AuthService {
                 .favouriteClub(favouriteClub)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .emailVerified(false)
+                .verificationCode(code)
+                .verificationCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_VALID_MINUTES))
                 .build();
         userRepository.save(savedUser);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
+
+        emailService.sendVerificationCode(savedUser.getEmail(), code);
+
+        return new EmailVerificationResponse(savedUser.getEmail(), "Verification code sent to your email.");
+    }
+
+    // Confirms the emailed code and returns the real login token - this is
+    // the moment a freshly registered account actually becomes usable.
+    public AuthResponse verifyEmail(VerifyEmailRequest request){
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            boolean codeMatches = user.getVerificationCode() != null
+                    && user.getVerificationCode().equals(request.getCode());
+            boolean notExpired = user.getVerificationCodeExpiresAt() != null
+                    && user.getVerificationCodeExpiresAt().isAfter(LocalDateTime.now());
+
+            if (!codeMatches || !notExpired) {
+                throw new InvalidCredentialsException("Invalid or expired verification code");
+            }
+
+            user.setEmailVerified(true);
+            user.setVerificationCode(null);
+            user.setVerificationCodeExpiresAt(null);
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(userDetails);
 
         AuthResponse response = new AuthResponse();
         response.setToken(token);
-        response.setUsername(savedUser.getUsername());
+        response.setUsername(user.getUsername());
         return response;
+    }
+
+    public EmailVerificationResponse resendVerification(String email){
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            return new EmailVerificationResponse(user.getEmail(), "This account is already verified - just log in.");
+        }
+
+        String code = generateVerificationCode();
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_VALID_MINUTES));
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(user.getEmail(), code);
+
+        return new EmailVerificationResponse(user.getEmail(), "Verification code sent to your email.");
+    }
+
+    private String generateVerificationCode(){
+        int number = new SecureRandom().nextInt(1_000_000);
+        return String.format("%06d", number);
     }
 
     public AuthResponse login(LoginRequest request){
@@ -89,6 +158,10 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("Email does not exist"));
+
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailNotVerifiedException("Please verify your email before logging in");
+        }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(userDetails);
