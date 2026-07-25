@@ -19,6 +19,7 @@ import com.augustine.gplfantasyleaague.exception.EmailAlreadyExistsException;
 import com.augustine.gplfantasyleaague.exception.EmailNotVerifiedException;
 import com.augustine.gplfantasyleaague.exception.InvalidCredentialsException;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
+import com.augustine.gplfantasyleaague.exception.UsernameAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -63,6 +64,9 @@ public class AuthService {
     public EmailVerificationResponse register(RegisterRequest request){
         if(userRepository.existsByEmail(request.getEmail())){
             throw new EmailAlreadyExistsException("Email already exists");
+        }
+        if(userRepository.existsByUsername(request.getUsername())){
+            throw new UsernameAlreadyExistsException("Username already exists");
         }
         Club favouriteClub = clubRepository.findById(request.getFavouriteClubId())
                 .orElseThrow(() -> new ResourceNotFoundException("Club with ID " + request.getFavouriteClubId() + " does not exist"));
@@ -236,8 +240,11 @@ public class AuthService {
         return userRepository.save(newUser);
     }
 
-    private String generateUniqueUsername(String email){
-        String localPart = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+    // Works for either an email (Google Sign-In - uses the part before @)
+    // or a plain full name (manual registration - the whole string, spaces
+    // and all, get stripped down to alphanumerics below).
+    private String generateUniqueUsername(String source){
+        String localPart = source.contains("@") ? source.substring(0, source.indexOf('@')) : source;
         String base = localPart.replaceAll("[^a-zA-Z0-9_]", "");
         if (base.isBlank()) {
             base = "user";

@@ -40,6 +40,15 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex, request);
     }
 
+    // 409 Conflict: Duplicate username registration
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUsernameAlreadyExists(
+            UsernameAlreadyExistsException ex,
+            HttpServletRequest request) {
+
+        return buildResponse(HttpStatus.CONFLICT, ex, request);
+    }
+
     // 409 Conflict: Duplicate club registration
     @ExceptionHandler(ClubAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleClubAlreadyExists(
