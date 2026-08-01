@@ -121,6 +121,7 @@ public class AuthService {
         AuthResponse response = new AuthResponse();
         response.setToken(token);
         response.setUsername(user.getUsername());
+        response.setRole(user.getRole().name());
         return response;
     }
 
@@ -173,6 +174,7 @@ public class AuthService {
         AuthResponse response = new AuthResponse();
         response.setToken(token);
         response.setUsername(user.getUsername());
+        response.setRole(user.getRole().name());
 
         return response;
 
@@ -215,6 +217,7 @@ public class AuthService {
         AuthResponse response = new AuthResponse();
         response.setToken(token);
         response.setUsername(user.getUsername());
+        response.setRole(user.getRole().name());
         return response;
     }
 
@@ -295,6 +298,7 @@ public class AuthService {
                 .fullName(user.getFullName())
                 .favouriteClub(clubSummary)
                 .premium(subscriptionService.isPremium(user.getId()))
+                .role(user.getRole().name())
                 .build();
     }
 }

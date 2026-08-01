@@ -15,4 +15,6 @@ public class UserProfileResponse {
     private ClubSummary favouriteClub;
     // Drives the premium badge next to the username throughout the app.
     private boolean premium;
+    // "USER" or "ADMIN" - see AuthResponse.role for why this exists.
+    private String role;
 }
