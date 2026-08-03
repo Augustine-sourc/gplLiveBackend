@@ -21,6 +21,16 @@ spring:
     username: ${DB_USERNAME}
     url: ${DB_URL:jdbc:postgresql://localhost:5432/fantasy_leadue}
     driver-class-name: org.postgresql.Driver
+    # HikariCP defaults to a pool of 10 connections - each one carries real
+    # memory overhead (buffers, thread state), which adds up on a
+    # 512MB-limited host. This app's traffic doesn't come close to needing
+    # 10 concurrent DB connections, so a smaller pool trades away headroom
+    # for bursty concurrent load in exchange for a meaningfully smaller
+    # baseline memory footprint - part of fixing the repeated Render OOM
+    # kills (exit 137) alongside the JVM flags in the Dockerfile.
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
   jpa:
     hibernate:
       ddl-auto: none

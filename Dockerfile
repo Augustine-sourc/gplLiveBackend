@@ -16,4 +16,16 @@ COPY --from=build /app/target/app.jar app.jar
 # Render (and most Docker-based PaaS hosts) assign the real listen port via
 # $PORT at runtime - server.port in application.yaml already reads that.
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Render's free instance type has a hard 512MB memory limit and kills the
+# process (OOM, exit 137) if it's exceeded - which was happening repeatedly
+# with no JVM memory flags set at all (the JVM's default heap sizing plus
+# G1GC's overhead, metaspace, thread stacks, etc. was creeping past 512MB
+# under normal use, not just under heavy load). These flags cap the JVM's
+# own memory usage well under that limit, with room left over for
+# non-heap/native memory:
+#   -Xmx320m               heap capped at 320MB
+#   -XX:MaxMetaspaceSize    class metadata capped at 128MB (also unbounded by default)
+#   -XX:+UseSerialGC        single-threaded GC - much lower memory/CPU overhead
+#                           than the default G1GC, which is meant for
+#                           multi-core/high-memory hosts this isn't
+ENTRYPOINT ["java", "-Xmx320m", "-XX:MaxMetaspaceSize=128m", "-XX:+UseSerialGC", "-jar", "app.jar"]
