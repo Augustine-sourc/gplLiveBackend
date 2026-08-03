@@ -5,11 +5,14 @@ import com.augustine.gplfantasyleaague.domain.auth.entity.User;
 import com.augustine.gplfantasyleaague.domain.auth.repository.UserRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.dto.FantasyTeamRequest;
 import com.augustine.gplfantasyleaague.domain.fantasy.dto.FantasyTeamResponse;
+import com.augustine.gplfantasyleaague.domain.fantasy.entity.Chip;
+import com.augustine.gplfantasyleaague.domain.fantasy.entity.ChipType;
 import com.augustine.gplfantasyleaague.domain.fantasy.entity.FantasyTeam;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.ChipRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.FantasyTeamPlayerRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.FantasyTeamRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.TransferRepository;
+import com.augustine.gplfantasyleaague.domain.gameweek.repository.GameweekRepository;
 import com.augustine.gplfantasyleaague.domain.scoring.repository.FantasyTeamGameWeekRepository;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import com.augustine.gplfantasyleaague.exception.TeamCreationException;
@@ -18,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class FantasyTeamService {
@@ -28,17 +33,20 @@ public class FantasyTeamService {
     private final TransferRepository transferRepository;
     private final ChipRepository chipRepository;
     private final FantasyTeamGameWeekRepository fantasyTeamGameWeekRepository;
+    private final GameweekRepository gameweekRepository;
 
 
     public FantasyTeamService(UserRepository userRepository, FantasyTeamRepository fantasyTeamRepository,
                                FantasyTeamPlayerRepository fantasyTeamPlayerRepository, TransferRepository transferRepository,
-                               ChipRepository chipRepository, FantasyTeamGameWeekRepository fantasyTeamGameWeekRepository) {
+                               ChipRepository chipRepository, FantasyTeamGameWeekRepository fantasyTeamGameWeekRepository,
+                               GameweekRepository gameweekRepository) {
         this.userRepository = userRepository;
         this.fantasyTeamRepository = fantasyTeamRepository;
         this.fantasyTeamPlayerRepository = fantasyTeamPlayerRepository;
         this.transferRepository = transferRepository;
         this.chipRepository = chipRepository;
         this.fantasyTeamGameWeekRepository = fantasyTeamGameWeekRepository;
+        this.gameweekRepository = gameweekRepository;
     }
 
     public FantasyTeamResponse createFantasyTeam(FantasyTeamRequest request, String email){
@@ -165,6 +173,41 @@ public class FantasyTeamService {
                 .teamName(savedTeam.getTeamName())
                 .username(savedTeam.getUser().getUsername())
                 .totalPoints(savedTeam.getTotalPoints())
+                .chips(buildChipStatus(savedTeam.getId()))
+                .activeChipKey(findActiveChipKeyForCurrentGameweek(savedTeam.getId()))
                 .build();
+    }
+
+    // camelCase key per chip type, matching the frontend's ChipStatus shape
+    // exactly (tripleCaptain, benchBoost, wildcard, wildcard2, freeHit).
+    private String chipTypeKey(ChipType chipType){
+        return switch (chipType) {
+            case TRIPLE_CAPTAIN -> "tripleCaptain";
+            case BENCH_BOOST -> "benchBoost";
+            case WILDCARD -> "wildcard";
+            case WILDCARD_2 -> "wildcard2";
+            case FREEHIT -> "freeHit";
+        };
+    }
+
+    private Map<String, Boolean> buildChipStatus(Integer teamId){
+        Map<String, Boolean> chips = new LinkedHashMap<>();
+        for (ChipType type : ChipType.values()) {
+            chips.put(chipTypeKey(type), chipRepository.existsByFantasyTeamIdAndChipType(teamId, type));
+        }
+        return chips;
+    }
+
+    // Only one chip can be active per team per gameweek (see ChipService's
+    // activateChip guards + the unique constraint on chips). Surfacing which
+    // one (if any) is active for the CURRENT gameweek lets the client lock
+    // out the other chip buttons for the week instead of letting the user
+    // tap one and only find out it's rejected after the fact.
+    private String findActiveChipKeyForCurrentGameweek(Integer teamId){
+        return gameweekRepository.findByIsCurrentTrue()
+                .flatMap(gw -> chipRepository.findByFantasyTeamIdAndGameweekId(teamId, gw.getId()))
+                .map(Chip::getChipType)
+                .map(this::chipTypeKey)
+                .orElse(null);
     }
 }
