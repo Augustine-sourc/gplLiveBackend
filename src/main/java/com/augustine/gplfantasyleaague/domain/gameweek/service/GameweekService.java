@@ -5,9 +5,11 @@ import com.augustine.gplfantasyleaague.domain.gameweek.dtos.GameweekResponse;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.Gameweek;
 import com.augustine.gplfantasyleaague.domain.gameweek.repository.GameweekRepository;
 import com.augustine.gplfantasyleaague.exception.GameweekAlreadyExistsException;
+import com.augustine.gplfantasyleaague.exception.InvalidGameweekException;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -69,7 +71,29 @@ public class GameweekService {
         return mapToResponse(gameweek);
     }
 
+    // Catches the class of admin data-entry mistake that caused GW1's
+    // deadline (18:25) to already be in the past relative to real time by
+    // the time anyone tried to use it, even though the gameweek itself
+    // (start_date -> end_date) was still very much current. Deliberately
+    // only applied on creation - not wired into any update/PUT path - since
+    // fixing an already-broken historical gameweek (like GW34's bad
+    // end_date) legitimately requires setting dates that wouldn't pass a
+    // "deadline must be in the future" check.
+    private void validateGameweekDates(GameweekRequest request){
+        if (!request.getStartDate().isBefore(request.getEndDate())) {
+            throw new InvalidGameweekException("Start date must be before end date");
+        }
+        if (request.getDeadline().isAfter(request.getStartDate())) {
+            throw new InvalidGameweekException("Deadline must be at or before the start date - it locks transfers/chips before matches kick off, not after");
+        }
+        if (request.getDeadline().isBefore(LocalDateTime.now())) {
+            throw new InvalidGameweekException("Deadline can't be in the past - this gameweek would be unusable (chips/transfers already locked) the moment it's created");
+        }
+    }
+
     private Gameweek saveToDatabase(GameweekRequest request){
+        validateGameweekDates(request);
+
         gameweekRepository.findBySeasonAndGameweekNumber(request.getSeason(), request.getGameweekNumber())
                 .ifPresent(existing -> {
                     throw new GameweekAlreadyExistsException(

@@ -49,6 +49,20 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex, request);
     }
 
+    // 400 Bad Request: Gameweek dates that don't make sense (deadline
+    // already passed, deadline after kickoff, end before start, etc.) -
+    // catches admin data-entry mistakes at creation time instead of letting
+    // a broken gameweek get saved and only surfacing as a confusing error
+    // later (e.g. "Gameweek has already ended" when a user tries to use a
+    // chip on a gameweek that's supposedly still current).
+    @ExceptionHandler(InvalidGameweekException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidGameweek(
+            InvalidGameweekException ex,
+            HttpServletRequest request) {
+
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, request);
+    }
+
     // 409 Conflict: Duplicate gameweek (same season + gameweek number)
     @ExceptionHandler(GameweekAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleGameweekAlreadyExists(
