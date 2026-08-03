@@ -2,10 +2,12 @@ package com.augustine.gplfantasyleaague.domain.auth.controller;
 
 import com.augustine.gplfantasyleaague.domain.auth.dto.AuthResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.EmailVerificationResponse;
+import com.augustine.gplfantasyleaague.domain.auth.dto.ForgotPasswordRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.GoogleAuthRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.LoginRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.ResendVerificationRequest;
+import com.augustine.gplfantasyleaague.domain.auth.dto.ResetPasswordRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UpdateFavouriteClubRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UserProfileResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.VerifyEmailRequest;
@@ -49,6 +51,16 @@ public class AuthController {
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleSignIn(@RequestBody @Valid GoogleAuthRequest request){
         return ResponseEntity.ok(authService.loginWithGoogle(request.getIdToken()));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<EmailVerificationResponse> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request){
+        return ResponseEntity.ok(authService.forgotPassword(request.getEmail()));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<AuthResponse> resetPassword(@RequestBody @Valid ResetPasswordRequest request){
+        return ResponseEntity.ok(authService.resetPassword(request));
     }
 
     @GetMapping("/users/me")

@@ -61,6 +61,15 @@ public class User {
     @Column(name = "verification_code_expires_at")
     private LocalDateTime verificationCodeExpiresAt;
 
+    // Forgot-password flow - separate from verificationCode above so a
+    // password reset request can never interfere with (or be confused with)
+    // an in-progress registration email-verification.
+    @Column(name = "reset_code")
+    private String resetCode;
+
+    @Column(name = "reset_code_expires_at")
+    private LocalDateTime resetCodeExpiresAt;
+
     @OneToOne(mappedBy = "user")
     private FantasyTeam fantasyTeam;
 

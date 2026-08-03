@@ -5,6 +5,7 @@ import com.augustine.gplfantasyleaague.domain.auth.dto.ClubSummary;
 import com.augustine.gplfantasyleaague.domain.auth.dto.EmailVerificationResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.LoginRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
+import com.augustine.gplfantasyleaague.domain.auth.dto.ResetPasswordRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UserProfileResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.VerifyEmailRequest;
 import com.augustine.gplfantasyleaague.domain.auth.entity.User;
@@ -141,6 +142,56 @@ public class AuthService {
         emailService.sendVerificationCode(user.getEmail(), code);
 
         return new EmailVerificationResponse(user.getEmail(), "Verification code sent to your email.");
+    }
+
+    // Always returns the same generic response whether or not the email
+    // exists - revealing "that email isn't registered" here would let
+    // anyone probe which Gmail addresses have accounts, so a non-existent
+    // email just silently sends nothing instead of a 404.
+    public EmailVerificationResponse forgotPassword(String email){
+        String genericMessage = "If an account exists for that email, a password reset code has been sent.";
+
+        userRepository.findByEmail(email).ifPresent(user -> {
+            String code = generateVerificationCode();
+            user.setResetCode(code);
+            user.setResetCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_VALID_MINUTES));
+            userRepository.save(user);
+            emailService.sendPasswordResetCode(user.getEmail(), code);
+        });
+
+        return new EmailVerificationResponse(email, genericMessage);
+    }
+
+    // Confirms the emailed reset code and sets the new password in one step
+    // - returns a real login token (like verifyEmail()) so the app can log
+    // the user straight in instead of making them re-enter the password
+    // they just chose.
+    public AuthResponse resetPassword(ResetPasswordRequest request){
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired reset code"));
+
+        boolean codeMatches = user.getResetCode() != null && user.getResetCode().equals(request.getCode());
+        boolean notExpired = user.getResetCodeExpiresAt() != null
+                && user.getResetCodeExpiresAt().isAfter(LocalDateTime.now());
+
+        if (!codeMatches || !notExpired) {
+            throw new InvalidCredentialsException("Invalid or expired reset code");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetCode(null);
+        user.setResetCodeExpiresAt(null);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtService.generateToken(userDetails);
+
+        AuthResponse response = new AuthResponse();
+        response.setToken(token);
+        response.setUsername(user.getUsername());
+        response.setRole(user.getRole().name());
+        return response;
     }
 
     private String generateVerificationCode(){

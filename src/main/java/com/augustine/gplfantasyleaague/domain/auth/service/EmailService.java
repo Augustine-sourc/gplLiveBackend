@@ -44,8 +44,30 @@ public class EmailService {
     // services, so a direct SMTP connection (e.g. to Gmail) always times out
     // there. Plain HTTPS on 443 isn't affected by that block.
     public void sendVerificationCode(String toEmail, String code) {
+        sendCode(
+                toEmail,
+                "Your GPL Live verification code",
+                "Your GPL Live verification code is: " + code + "\n\n"
+                        + "This code expires in 15 minutes. If you didn't request this, you can ignore this email."
+        );
+    }
+
+    // Same delivery mechanism as sendVerificationCode - separate method
+    // purely so the email copy is unambiguous about what the code is for
+    // (a user resetting their password shouldn't get an email that just
+    // says "verification code" with no context).
+    public void sendPasswordResetCode(String toEmail, String code) {
+        sendCode(
+                toEmail,
+                "Your GPL Live password reset code",
+                "Your GPL Live password reset code is: " + code + "\n\n"
+                        + "This code expires in 15 minutes. If you didn't request a password reset, you can ignore this email - your password won't be changed."
+        );
+    }
+
+    private void sendCode(String toEmail, String subject, String textContent) {
         if (apiKey == null || apiKey.isBlank() || senderEmail == null || senderEmail.isBlank()) {
-            log.warn("BREVO_API_KEY or BREVO_SENDER_EMAIL is not configured - skipping verification email to {} (code: {})", toEmail, code);
+            log.warn("BREVO_API_KEY or BREVO_SENDER_EMAIL is not configured - skipping email to {} ({})", toEmail, subject);
             return;
         }
 
@@ -53,9 +75,8 @@ public class EmailService {
             Map<String, Object> payload = Map.of(
                     "sender", Map.of("email", senderEmail, "name", senderName),
                     "to", List.of(Map.of("email", toEmail)),
-                    "subject", "Your GPL Live verification code",
-                    "textContent", "Your GPL Live verification code is: " + code + "\n\n"
-                            + "This code expires in 15 minutes. If you didn't request this, you can ignore this email."
+                    "subject", subject,
+                    "textContent", textContent
             );
 
             HttpRequest request = HttpRequest.newBuilder(BREVO_SEND_URI)
@@ -69,10 +90,10 @@ public class EmailService {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() >= 300) {
-                log.error("Brevo rejected verification email to {}: HTTP {} - {}", toEmail, response.statusCode(), response.body());
+                log.error("Brevo rejected email to {}: HTTP {} - {}", toEmail, response.statusCode(), response.body());
             }
         } catch (Exception e) {
-            log.error("Failed to send verification email to {}", toEmail, e);
+            log.error("Failed to send email to {}", toEmail, e);
         }
     }
 }
