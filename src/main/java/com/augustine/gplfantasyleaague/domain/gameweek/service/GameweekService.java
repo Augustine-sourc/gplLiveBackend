@@ -4,6 +4,7 @@ import com.augustine.gplfantasyleaague.domain.gameweek.dtos.GameweekRequest;
 import com.augustine.gplfantasyleaague.domain.gameweek.dtos.GameweekResponse;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.Gameweek;
 import com.augustine.gplfantasyleaague.domain.gameweek.repository.GameweekRepository;
+import com.augustine.gplfantasyleaague.exception.GameweekAlreadyExistsException;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -69,6 +70,12 @@ public class GameweekService {
     }
 
     private Gameweek saveToDatabase(GameweekRequest request){
+        gameweekRepository.findBySeasonAndGameweekNumber(request.getSeason(), request.getGameweekNumber())
+                .ifPresent(existing -> {
+                    throw new GameweekAlreadyExistsException(
+                            "Gameweek " + request.getGameweekNumber() + " for season " + request.getSeason() + " already exists");
+                });
+
         Gameweek savedGameweek = Gameweek.builder()
                 .season(request.getSeason())
                 .gameweekNumber(request.getGameweekNumber())

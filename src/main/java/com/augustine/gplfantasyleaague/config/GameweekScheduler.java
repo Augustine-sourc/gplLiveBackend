@@ -55,7 +55,7 @@ public class GameweekScheduler {
 
                                 // 2 & 3. Find the next gameweek and hand off the transition to GameweekService,
                                 // which handles deactivating the old current gameweek and activating the new one.
-                                gameweekRepository.findByGameweekNumber(gameweek.getGameweekNumber() + 1)
+                                gameweekRepository.findBySeasonAndGameweekNumber(gameweek.getSeason(), gameweek.getGameweekNumber() + 1)
                                         .ifPresentOrElse(
                                                 nextGameweek -> {
                                                     gameweekService.setCurrentGameweek(nextGameweek.getId());

@@ -13,6 +13,13 @@ public interface GameweekRepository extends JpaRepository<Gameweek, Integer> {
     List<Gameweek> findByIsCurrentTrueAndEndDateBefore(LocalDateTime now);
     Optional<Gameweek> findByGameweekNumber(Integer gameweekNumber);
 
+    // Season-scoped lookup - season is a free-text field ("2026/2027"),
+    // so gameweekNumber alone is not unique across seasons. Used by
+    // GameweekScheduler and GameweekService to avoid the old bug where
+    // findByGameweekNumber could match a gameweek from an unrelated season
+    // (or throw on duplicate numbers within the same season).
+    Optional<Gameweek> findBySeasonAndGameweekNumber(String season, Integer gameweekNumber);
+
     // Used by StandingsService to pick a default season when no gameweek is
     // flagged current (e.g. a season that has just ended) - falls back to
     // whichever season's gameweeks ran most recently, so the table follows

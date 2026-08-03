@@ -49,6 +49,15 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex, request);
     }
 
+    // 409 Conflict: Duplicate gameweek (same season + gameweek number)
+    @ExceptionHandler(GameweekAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleGameweekAlreadyExists(
+            GameweekAlreadyExistsException ex,
+            HttpServletRequest request) {
+
+        return buildResponse(HttpStatus.CONFLICT, ex, request);
+    }
+
     // 409 Conflict: Duplicate club registration
     @ExceptionHandler(ClubAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleClubAlreadyExists(
