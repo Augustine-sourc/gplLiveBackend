@@ -22,6 +22,10 @@ public class FantasyTeamPlayerResponse {
     private String playerName;
     private Position position;
     private BigDecimal currentPrice;
+    // Live currentPrice minus the price before it - same meaning as
+    // PlayerResponse.priceChange, so the up/down arrow works the same way
+    // whether a player is being browsed or already in your squad.
+    private BigDecimal priceChange;
     private BigDecimal purchasePrice;
     private Boolean isCaptain;
     private Boolean isViceCaptain;

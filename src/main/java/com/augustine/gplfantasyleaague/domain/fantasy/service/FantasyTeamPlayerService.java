@@ -201,7 +201,16 @@ public class FantasyTeamPlayerService {
             throw new InvalidSquadException("You cannot remove your vice-captain. Assign vice-captain to another player first.");
         }
 
-        BigDecimal refund = player.getCurrentPrice() != null ? player.getCurrentPrice() : player.getPurchasePrice();
+        // Refund the player's LIVE current market price, not the frozen
+        // currentPrice snapshot taken at purchase time (that snapshot is
+        // never updated after purchase, so it silently drifted further from
+        // reality all season - selling a player who'd risen in value never
+        // actually paid out the rise, and one who'd dropped never cost you
+        // anything either). Falls back to the snapshot/purchase price only
+        // if this player somehow has no price history at all.
+        BigDecimal refund = playerPriceRepository.findTopByPlayerIdOrderByRecordedAtDesc(player.getPlayer().getId())
+                .map(PlayerPrice::getPrice)
+                .orElseGet(() -> player.getCurrentPrice() != null ? player.getCurrentPrice() : player.getPurchasePrice());
         team.setBudgetRemaining(team.getBudgetRemaining().add(refund));
         fantasyTeamRepository.save(team);
 
@@ -401,6 +410,16 @@ public class FantasyTeamPlayerService {
     }
 
     private FantasyTeamPlayerResponse mapToResponse(FantasyTeamPlayer fantasyTeamPlayer){
+        // Live price + change, same as PlayerService.mapToPlayerResponse -
+        // this used to just echo the frozen currentPrice snapshot from
+        // purchase time (see removePlayerFromSquad's comment above), so a
+        // squad's displayed value never moved even as the market did.
+        List<PlayerPrice> recentPrices = playerPriceRepository.findTop2ByPlayerIdOrderByRecordedAtDesc(fantasyTeamPlayer.getPlayer().getId());
+        BigDecimal livePrice = recentPrices.isEmpty() ? fantasyTeamPlayer.getCurrentPrice() : recentPrices.get(0).getPrice();
+        BigDecimal priceChange = recentPrices.size() >= 2
+                ? livePrice.subtract(recentPrices.get(1).getPrice())
+                : null;
+
         return FantasyTeamPlayerResponse.builder()
                 .id(fantasyTeamPlayer.getId())
                 .playerId(fantasyTeamPlayer.getPlayer().getId())
@@ -412,7 +431,8 @@ public class FantasyTeamPlayerService {
                 .playerName(fantasyTeamPlayer.getPlayer().getFullName())
                 .position(fantasyTeamPlayer.getPlayer().getPosition())
                 .purchasePrice(fantasyTeamPlayer.getPurchasePrice())
-                .currentPrice(fantasyTeamPlayer.getCurrentPrice())
+                .currentPrice(livePrice)
+                .priceChange(priceChange)
                 .build();
     }
 }

@@ -24,6 +24,9 @@ public class PlayerAnalysisResponse {
     private String clubName;
     private Position position;
     private BigDecimal currentPrice;
+    // Same meaning as PlayerResponse.priceChange - currentPrice minus the
+    // price before it, null if there's no prior price to compare against.
+    private BigDecimal priceChange;
     private Integer totalPoints;
     private Integer totalGoals;
     private Integer totalAssists;

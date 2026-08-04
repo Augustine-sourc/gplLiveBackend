@@ -62,9 +62,11 @@ public class PlayerAnalysisService {
         int totalGoals = statsDesc.stream().mapToInt(s -> nz(s.getGoalsScored())).sum();
         int totalAssists = statsDesc.stream().mapToInt(s -> nz(s.getAssists())).sum();
 
-        java.math.BigDecimal currentPrice = playerPriceRepository.findTopByPlayerIdOrderByRecordedAtDesc(playerId)
-                .map(PlayerPrice::getPrice)
-                .orElse(null);
+        List<PlayerPrice> recentPrices = playerPriceRepository.findTop2ByPlayerIdOrderByRecordedAtDesc(playerId);
+        java.math.BigDecimal currentPrice = recentPrices.isEmpty() ? null : recentPrices.get(0).getPrice();
+        java.math.BigDecimal priceChange = recentPrices.size() >= 2
+                ? currentPrice.subtract(recentPrices.get(1).getPrice())
+                : null;
 
         PlayerAnalysisResponse.PlayerAnalysisResponseBuilder response = PlayerAnalysisResponse.builder()
                 .id(player.getId())
@@ -73,6 +75,7 @@ public class PlayerAnalysisService {
                 .clubName(player.getClub().getFullName())
                 .position(player.getPosition())
                 .currentPrice(currentPrice)
+                .priceChange(priceChange)
                 .totalPoints(totalPoints)
                 .totalGoals(totalGoals)
                 .totalAssists(totalAssists);

@@ -6,6 +6,7 @@ import com.augustine.gplfantasyleaague.domain.club.repository.ClubRepository;
 import com.augustine.gplfantasyleaague.domain.player.dto.PlayerRequest;
 import com.augustine.gplfantasyleaague.domain.player.dto.PlayerResponse;
 import com.augustine.gplfantasyleaague.domain.player.entity.Player;
+import com.augustine.gplfantasyleaague.domain.player.entity.PlayerPrice;
 import com.augustine.gplfantasyleaague.domain.player.entity.Position;
 import com.augustine.gplfantasyleaague.domain.player.entity.Status;
 import com.augustine.gplfantasyleaague.domain.player.repository.PlayerPriceRepository;
@@ -86,9 +87,11 @@ public class PlayerService {
     }
 
     private PlayerResponse mapToPlayerResponse(Player player){
-        BigDecimal currentPrice = playerPriceRepository.findTopByPlayerIdOrderByRecordedAtDesc(player.getId())
-                .map(price -> price.getPrice())
-                .orElse(null);
+        List<PlayerPrice> recentPrices = playerPriceRepository.findTop2ByPlayerIdOrderByRecordedAtDesc(player.getId());
+        BigDecimal currentPrice = recentPrices.isEmpty() ? null : recentPrices.get(0).getPrice();
+        BigDecimal priceChange = recentPrices.size() >= 2
+                ? currentPrice.subtract(recentPrices.get(1).getPrice())
+                : null;
 
         return PlayerResponse.builder()
                 .id(player.getId())
@@ -101,6 +104,7 @@ public class PlayerService {
                 .position(player.getPosition())
                 .clubName(player.getClub().getFullName())
                 .currentPrice(currentPrice)
+                .priceChange(priceChange)
                 .build();
     }
 

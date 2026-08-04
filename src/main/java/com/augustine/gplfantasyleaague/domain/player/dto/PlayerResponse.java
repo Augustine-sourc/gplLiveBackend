@@ -25,4 +25,9 @@ public class PlayerResponse {
     private Status status;
     // Latest recorded price for this player, null if no price has been set yet.
     private BigDecimal currentPrice;
+
+    // currentPrice minus the price before it - positive means the price
+    // just went up, negative means it dropped, null means there's no prior
+    // price to compare against yet. Powers the up/down arrow in the UI.
+    private BigDecimal priceChange;
 }
