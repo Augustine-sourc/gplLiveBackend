@@ -11,10 +11,13 @@ public interface LeagueRepository extends JpaRepository<League, Integer> {
 
     boolean existsByInviteCode(String inviteCode);
 
-    // Search screen's league lookup - only ever searches PUBLIC leagues,
-    // private ones are only reachable via their invite code. Empty/blank
-    // query still works here (returns every public league) since
-    // "Containing" against "" matches everything - powers a plain "browse
-    // public leagues" view with no separate method needed.
-    List<League> findByIsPublicTrueAndNameContainingIgnoreCase(String name);
+    // Search screen's league lookup - returns BOTH public and private
+    // leagues by name. Private ones are still discoverable this way (the
+    // app targets an APK/manual-install audience, not app-store users, so
+    // "hidden unless you already have the code" was more friction than the
+    // product needs) - joining one still creates a PENDING request the
+    // creator has to accept, same as ever. Empty/blank query still works
+    // (returns every league) since "Containing" against "" matches
+    // everything - powers a plain "browse leagues" view for free.
+    List<League> findByNameContainingIgnoreCase(String name);
 }

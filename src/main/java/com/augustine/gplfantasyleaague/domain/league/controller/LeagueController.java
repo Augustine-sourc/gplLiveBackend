@@ -30,13 +30,13 @@ public class LeagueController {
         return ResponseEntity.ok(leagueService.createLeague(request, currentEmail()));
     }
 
-    // Blank/omitted query returns every public league - the Search screen's
-    // "browse" state before the user types anything.
+    // Blank/omitted query returns every league (public AND private) - the
+    // Search screen's "browse" state before the user types anything.
     @GetMapping("/search")
-    public ResponseEntity<List<LeagueResponse>> searchPublicLeagues(
+    public ResponseEntity<List<LeagueResponse>> searchLeagues(
             @RequestParam(required = false) String query
     ) {
-        return ResponseEntity.ok(leagueService.searchPublicLeagues(query, currentEmail()));
+        return ResponseEntity.ok(leagueService.searchLeagues(query, currentEmail()));
     }
 
     @GetMapping("/mine")
@@ -49,10 +49,12 @@ public class LeagueController {
         return ResponseEntity.ok(leagueService.getLeague(id, currentEmail()));
     }
 
-    // Public league only - joining from a search result, straight to ACTIVE.
+    // Works for either kind of league - ACTIVE immediately if public,
+    // PENDING (awaiting the creator) if private. Used from a search result
+    // or the league detail screen's Join button.
     @PostMapping("/{id}/join")
-    public ResponseEntity<LeagueResponse> joinPublicLeague(@PathVariable Integer id) {
-        return ResponseEntity.ok(leagueService.joinPublicLeague(id, currentEmail()));
+    public ResponseEntity<LeagueResponse> joinLeague(@PathVariable Integer id) {
+        return ResponseEntity.ok(leagueService.joinLeague(id, currentEmail()));
     }
 
     // Works for either kind of league - ACTIVE immediately if public,

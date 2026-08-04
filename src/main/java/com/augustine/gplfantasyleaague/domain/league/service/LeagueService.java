@@ -97,12 +97,14 @@ public class LeagueService {
     }
 
     // Blank/omitted query still works - "Containing" against "" matches
-    // every public league, so this doubles as a "browse public leagues"
-    // list when the search box is empty.
-    public List<LeagueResponse> searchPublicLeagues(String query, String email) {
+    // every league, so this doubles as a "browse leagues" list when the
+    // search box is empty. Returns both public AND private leagues -
+    // private ones are discoverable by name now, joining one just still
+    // requires the creator's approval (see joinLeague below).
+    public List<LeagueResponse> searchLeagues(String query, String email) {
         User me = requireUser(email);
         String q = query == null ? "" : query.trim();
-        return leagueRepository.findByIsPublicTrueAndNameContainingIgnoreCase(q).stream()
+        return leagueRepository.findByNameContainingIgnoreCase(q).stream()
                 .map(league -> mapToResponse(league, me))
                 .toList();
     }
@@ -115,32 +117,37 @@ public class LeagueService {
                 .toList();
     }
 
+    // Basic league info (name, member count, public/private, caller's
+    // status) is visible to anyone now that private leagues are
+    // discoverable via search too - not gated behind membership. The
+    // member list and leaderboards still are (see requireViewable below).
     public LeagueResponse getLeague(Integer leagueId, String email) {
         User me = requireUser(email);
         League league = requireLeague(leagueId);
-        requireViewable(league, me);
         return mapToResponse(league, me);
     }
 
-    // Joining a PUBLIC league from search results, by id - straight to
-    // ACTIVE, no approval needed. Rejects outright if the league turns out
-    // to be private (shouldn't happen via the UI, since private leagues
-    // never appear in search, but the endpoint itself has to be safe
-    // regardless of how it's called).
+    // Joining by id, from a search result or the league detail screen -
+    // works for either kind of league. Public: straight to ACTIVE. Private:
+    // creates a PENDING request and notifies the creator, who has to
+    // accept before it counts as real membership.
     @Transactional
-    public LeagueResponse joinPublicLeague(Integer leagueId, String email) {
+    public LeagueResponse joinLeague(Integer leagueId, String email) {
         User me = requireUser(email);
         League league = requireLeague(leagueId);
-        if (!Boolean.TRUE.equals(league.getIsPublic())) {
-            throw new InvalidLeagueException("This league is private - ask the owner for an invite code instead.");
-        }
-        joinOrRequest(league, me, MembershipStatus.ACTIVE);
+
+        MembershipStatus targetStatus = Boolean.TRUE.equals(league.getIsPublic())
+                ? MembershipStatus.ACTIVE
+                : MembershipStatus.PENDING;
+        joinOrRequest(league, me, targetStatus);
+        notifyCreatorIfPending(league, me, targetStatus);
+
         return mapToResponse(league, me);
     }
 
-    // Joining/requesting via invite code - works for either kind of league.
-    // Public: straight to ACTIVE, same as joining by id. Private: creates a
-    // PENDING request and notifies the creator.
+    // Alternate join path via a shared code, e.g. someone forwards it
+    // outside the app - same ACTIVE/PENDING logic as joining by id above,
+    // just resolved from the code instead of a search result's id.
     @Transactional
     public LeagueResponse joinByCode(String inviteCode, String email) {
         User me = requireUser(email);
@@ -152,14 +159,17 @@ public class LeagueService {
                 ? MembershipStatus.ACTIVE
                 : MembershipStatus.PENDING;
         joinOrRequest(league, me, targetStatus);
+        notifyCreatorIfPending(league, me, targetStatus);
 
-        if (targetStatus == MembershipStatus.PENDING) {
-            notificationService.sendNotification(notification(
-                    league.getCreator().getId(),
-                    me.getUsername() + " wants to join \"" + league.getName() + "\".",
-                    NotificationType.LEAGUE));
-        }
         return mapToResponse(league, me);
+    }
+
+    private void notifyCreatorIfPending(League league, User requester, MembershipStatus targetStatus) {
+        if (targetStatus != MembershipStatus.PENDING) return;
+        notificationService.sendNotification(notification(
+                league.getCreator().getId(),
+                requester.getUsername() + " wants to join \"" + league.getName() + "\".",
+                NotificationType.LEAGUE));
     }
 
     private void joinOrRequest(League league, User user, MembershipStatus targetStatus) {
