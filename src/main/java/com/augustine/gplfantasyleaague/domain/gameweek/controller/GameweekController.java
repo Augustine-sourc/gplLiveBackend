@@ -29,8 +29,13 @@ public class GameweekController {
         return ResponseEntity.ok(gameweekService.getCurrentGameweek());
     }
 
-    @GetMapping("/season/{season}")
-    public ResponseEntity<List<GameweekResponse>> getGameweekBySeason(@PathVariable String season){
+    // Query param, not a path variable - season strings contain a literal
+    // "/" (e.g. "2026/2027"), and Spring Security's default StrictHttpFirewall
+    // rejects any request whose PATH contains an encoded slash (%2F), so
+    // /gameweeks/season/2026%2F2027 would 400 before ever reaching this
+    // method. Query params don't have that restriction.
+    @GetMapping("/season")
+    public ResponseEntity<List<GameweekResponse>> getGameweekBySeason(@RequestParam String season){
         return ResponseEntity.ok(gameweekService.getGameweekBySeason(season));
     }
 
