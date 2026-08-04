@@ -64,7 +64,10 @@ public class ChipService {
         }
 
         if(gameweek.getDeadline().isBefore(LocalDateTime.now())){
-            throw new InvalidSquadException("Gameweek has already ended");
+            // Not "the gameweek has ended" - fixtures for this gameweek can
+            // still be days from finishing. This is the pre-kickoff lock
+            // (same one cancelChip below checks), so say that instead.
+            throw new InvalidSquadException("The Gameweek deadline has passed - chips lock once the first match kicks off.");
         }
 
         if(chipRepository.existsByFantasyTeamIdAndChipType(team.getId(), ChipType.TRIPLE_CAPTAIN)){
@@ -90,7 +93,10 @@ public class ChipService {
         }
 
         if(gameweek.getDeadline().isBefore(LocalDateTime.now())){
-            throw new InvalidSquadException("Gameweek has already ended");
+            // Not "the gameweek has ended" - fixtures for this gameweek can
+            // still be days from finishing. This is the pre-kickoff lock
+            // (same one cancelChip below checks), so say that instead.
+            throw new InvalidSquadException("The Gameweek deadline has passed - chips lock once the first match kicks off.");
         }
 
         if(chipRepository.existsByFantasyTeamIdAndChipType(team.getId(), ChipType.BENCH_BOOST)){
@@ -116,7 +122,10 @@ public class ChipService {
         }
 
         if(gameweek.getDeadline().isBefore(LocalDateTime.now())){
-            throw new InvalidSquadException("Gameweek has already ended");
+            // Not "the gameweek has ended" - fixtures for this gameweek can
+            // still be days from finishing. This is the pre-kickoff lock
+            // (same one cancelChip below checks), so say that instead.
+            throw new InvalidSquadException("The Gameweek deadline has passed - chips lock once the first match kicks off.");
         }
 
         if(chipRepository.existsByFantasyTeamIdAndChipType(team.getId(), ChipType.WILDCARD)){
@@ -148,7 +157,10 @@ public class ChipService {
         }
 
         if(gameweek.getDeadline().isBefore(LocalDateTime.now())){
-            throw new InvalidSquadException("Gameweek has already ended");
+            // Not "the gameweek has ended" - fixtures for this gameweek can
+            // still be days from finishing. This is the pre-kickoff lock
+            // (same one cancelChip below checks), so say that instead.
+            throw new InvalidSquadException("The Gameweek deadline has passed - chips lock once the first match kicks off.");
         }
 
 
@@ -181,7 +193,10 @@ public class ChipService {
         }
 
         if(gameweek.getDeadline().isBefore(LocalDateTime.now())){
-            throw new InvalidSquadException("Gameweek has already ended");
+            // Not "the gameweek has ended" - fixtures for this gameweek can
+            // still be days from finishing. This is the pre-kickoff lock
+            // (same one cancelChip below checks), so say that instead.
+            throw new InvalidSquadException("The Gameweek deadline has passed - chips lock once the first match kicks off.");
         }
 
         if(chipRepository.existsByFantasyTeamIdAndChipType(team.getId(), ChipType.FREEHIT)){

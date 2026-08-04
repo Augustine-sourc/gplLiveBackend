@@ -76,9 +76,11 @@ public class TransferService {
 
         // Same deadline rule ChipService already enforces for chip activation -
         // transfers previously had no lock at all, letting a team change its
-        // lineup after that gameweek's matches had already kicked off.
+        // lineup after that gameweek's matches had already kicked off. Not
+        // "the gameweek has ended" - fixtures can still be days from
+        // finishing, this is just the pre-kickoff lock.
         if(gameweek.getDeadline().isBefore(LocalDateTime.now())){
-            throw new InvalidSquadException("Gameweek has already ended");
+            throw new InvalidSquadException("The Gameweek deadline has passed - transfers lock once the first match kicks off.");
         }
 
         if(!fantasyTeamPlayerRepository.existsByFantasyTeamIdAndPlayerId(fantasyTeam.getId(), playerOut.getId())){

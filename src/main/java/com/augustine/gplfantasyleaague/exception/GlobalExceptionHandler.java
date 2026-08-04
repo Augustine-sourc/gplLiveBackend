@@ -55,8 +55,10 @@ public class GlobalExceptionHandler {
     // already passed, deadline after kickoff, end before start, etc.) -
     // catches admin data-entry mistakes at creation time instead of letting
     // a broken gameweek get saved and only surfacing as a confusing error
-    // later (e.g. "Gameweek has already ended" when a user tries to use a
-    // chip on a gameweek that's supposedly still current).
+    // later (e.g. a misleading "Gameweek has already ended" when a user
+    // tries to use a chip on a gameweek that's supposedly still current -
+    // see ChipService/TransferService, which now say "deadline has passed"
+    // instead, since that's what's actually being checked).
     @ExceptionHandler(InvalidGameweekException.class)
     public ResponseEntity<ErrorResponse> handleInvalidGameweek(
             InvalidGameweekException ex,
