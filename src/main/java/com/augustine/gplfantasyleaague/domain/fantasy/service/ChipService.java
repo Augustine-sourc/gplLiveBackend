@@ -11,6 +11,8 @@ import com.augustine.gplfantasyleaague.domain.fantasy.repository.FreeHitSnapShot
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.Gameweek;
 import com.augustine.gplfantasyleaague.domain.gameweek.repository.GameweekRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.dto.ChipResponse;
+import com.augustine.gplfantasyleaague.domain.scoring.repository.FantasyTeamGameWeekRepository;
+import com.augustine.gplfantasyleaague.domain.scoring.service.ScoringService;
 import com.augustine.gplfantasyleaague.exception.InvalidSquadException;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import com.augustine.gplfantasyleaague.exception.UnauthorizedAccessException;
@@ -18,25 +20,38 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class ChipService {
+    // Matches official FPL rules: Bench Boost and Triple Captain are just a
+    // flag on your saved team, so they can be cancelled any time up to the
+    // Gameweek deadline. Wildcard and Free Hit are tied to a transfer
+    // transaction (and, here, a squad/budget snapshot for Free Hit) that's
+    // final the moment it's confirmed - neither can be undone.
+    private static final Set<ChipType> CANCELLABLE_CHIP_TYPES = EnumSet.of(ChipType.BENCH_BOOST, ChipType.TRIPLE_CAPTAIN);
+
     private final FantasyTeamRepository fantasyTeamRepository;
     private final GameweekRepository gameweekRepository;
     private final UserRepository userRepository;
     private final ChipRepository chipRepository;
     private final FantasyTeamPlayerRepository fantasyTeamPlayerRepository;
     private final FreeHitSnapShotRepository freeHitSnapShotRepository;
+    private final FantasyTeamGameWeekRepository fantasyTeamGameWeekRepository;
+    private final ScoringService scoringService;
 
-    public ChipService(FantasyTeamRepository fantasyTeamRepository, GameweekRepository gameweekRepository, UserRepository userRepository, ChipRepository chipRepository, FantasyTeamPlayerRepository fantasyTeamPlayerRepository, FreeHitSnapShotRepository freeHitSnapShotRepository) {
+    public ChipService(FantasyTeamRepository fantasyTeamRepository, GameweekRepository gameweekRepository, UserRepository userRepository, ChipRepository chipRepository, FantasyTeamPlayerRepository fantasyTeamPlayerRepository, FreeHitSnapShotRepository freeHitSnapShotRepository, FantasyTeamGameWeekRepository fantasyTeamGameWeekRepository, ScoringService scoringService) {
         this.fantasyTeamRepository = fantasyTeamRepository;
         this.gameweekRepository = gameweekRepository;
         this.userRepository = userRepository;
         this.chipRepository = chipRepository;
         this.fantasyTeamPlayerRepository = fantasyTeamPlayerRepository;
         this.freeHitSnapShotRepository = freeHitSnapShotRepository;
+        this.fantasyTeamGameWeekRepository = fantasyTeamGameWeekRepository;
+        this.scoringService = scoringService;
     }
 
     public ChipResponse activateTripleCaptain(ChipRequest request, String email){
@@ -217,6 +232,44 @@ public class ChipService {
         Chip saveChip = chipRepository.findByFantasyTeamIdAndGameweekId(team.getId(), gameweek.getId()).orElseThrow(() -> new ResourceNotFoundException("Free Hit chip not found"));
 
         return mapToResponse(saveChip);
+    }
+
+    // Undo a Bench Boost or Triple Captain before the Gameweek locks -
+    // same rule the real FPL uses (those two are just a flag on your saved
+    // team; Wildcard/Free Hit are tied to a transfer that's final once
+    // confirmed, so they're deliberately excluded here).
+    @Transactional
+    public void cancelChip(Integer fantasyTeamId, Integer gameweekId, String email){
+        User user = userRepository.findByEmail(email).orElseThrow(()-> new ResourceNotFoundException("User not found"));
+        FantasyTeam team = fantasyTeamRepository.findById(fantasyTeamId).orElseThrow(()-> new ResourceNotFoundException("Team not found"));
+        Gameweek gameweek = gameweekRepository.findById(gameweekId).orElseThrow(()-> new ResourceNotFoundException("Gameweek not found"));
+
+        if(!team.getUser().getId().equals(user.getId())){
+            throw new UnauthorizedAccessException("This team doesn't belong to you");
+        }
+
+        Chip chip = chipRepository.findByFantasyTeamIdAndGameweekId(team.getId(), gameweek.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("No chip is active for this team in this Gameweek"));
+
+        if(!CANCELLABLE_CHIP_TYPES.contains(chip.getChipType())){
+            throw new InvalidSquadException(chip.getChipType() == ChipType.FREEHIT
+                    ? "Free Hit can't be cancelled once played."
+                    : "Wildcard can't be cancelled once played.");
+        }
+
+        if(gameweek.getDeadline().isBefore(LocalDateTime.now())){
+            throw new InvalidSquadException("The Gameweek deadline has passed - this chip can no longer be cancelled.");
+        }
+
+        chipRepository.delete(chip);
+
+        // Scoring normally only runs after the deadline (once results come
+        // in), so this is usually a no-op - but if a score for this team's
+        // Gameweek was already computed for any reason, recompute it now
+        // that the chip's multiplier/bench-boost effect is gone.
+        if(fantasyTeamGameWeekRepository.findByFantasyTeamIdAndGameweekId(team.getId(), gameweek.getId()).isPresent()){
+            scoringService.calculateGameweekScore(team.getId(), gameweek.getId());
+        }
     }
 
 
