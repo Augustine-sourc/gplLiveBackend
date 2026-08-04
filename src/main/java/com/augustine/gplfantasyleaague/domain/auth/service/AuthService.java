@@ -8,7 +8,9 @@ import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.ResetPasswordRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UserProfileResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.VerifyEmailRequest;
+import com.augustine.gplfantasyleaague.domain.auth.entity.PendingRegistration;
 import com.augustine.gplfantasyleaague.domain.auth.entity.User;
+import com.augustine.gplfantasyleaague.domain.auth.repository.PendingRegistrationRepository;
 import com.augustine.gplfantasyleaague.domain.auth.repository.UserRepository;
 import com.augustine.gplfantasyleaague.domain.auth.security.GoogleTokenVerifier;
 import com.augustine.gplfantasyleaague.domain.auth.security.GoogleUserInfo;
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -44,10 +47,11 @@ public class AuthService {
     private final SubscriptionService subscriptionService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final EmailService emailService;
+    private final PendingRegistrationRepository pendingRegistrationRepository;
 
     private static final int VERIFICATION_CODE_VALID_MINUTES = 15;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository, SubscriptionService subscriptionService, GoogleTokenVerifier googleTokenVerifier, EmailService emailService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, ClubRepository clubRepository, SubscriptionService subscriptionService, GoogleTokenVerifier googleTokenVerifier, EmailService emailService, PendingRegistrationRepository pendingRegistrationRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -57,11 +61,17 @@ public class AuthService {
         this.subscriptionService = subscriptionService;
         this.googleTokenVerifier = googleTokenVerifier;
         this.emailService = emailService;
+        this.pendingRegistrationRepository = pendingRegistrationRepository;
     }
 
-    // No longer returns a token - a freshly registered account can't log in
-    // until the emailed code is confirmed via verifyEmail(). See
-    // EmailVerificationResponse for why.
+    // Nothing gets written to `users` here anymore - the submitted details
+    // are staged in pending_registrations until the emailed code is
+    // confirmed via verifyEmail(). Previously this saved a real User row
+    // with emailVerified=false immediately, so an account nobody ever
+    // verified would permanently occupy that email/username in the real
+    // table. A second register() call for the same email now just
+    // overwrites the earlier pending attempt (upsert by email) instead of
+    // being blocked by it.
     public EmailVerificationResponse register(RegisterRequest request){
         if(userRepository.existsByEmail(request.getEmail())){
             throw new EmailAlreadyExistsException("Email already exists");
@@ -74,48 +84,92 @@ public class AuthService {
 
         String code = generateVerificationCode();
 
-        User savedUser = User.builder()
-                .email(request.getEmail())
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .favouriteClub(favouriteClub)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .emailVerified(false)
-                .verificationCode(code)
-                .verificationCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_VALID_MINUTES))
-                .build();
-        userRepository.save(savedUser);
+        PendingRegistration pending = pendingRegistrationRepository.findByEmail(request.getEmail())
+                .orElseGet(() -> PendingRegistration.builder().createdAt(LocalDateTime.now()).build());
+        pending.setEmail(request.getEmail());
+        pending.setUsername(request.getUsername());
+        pending.setPassword(passwordEncoder.encode(request.getPassword()));
+        pending.setFullName(request.getFullName());
+        pending.setFavouriteClub(favouriteClub);
+        pending.setVerificationCode(code);
+        pending.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_VALID_MINUTES));
+        pendingRegistrationRepository.save(pending);
 
-        emailService.sendVerificationCode(savedUser.getEmail(), code);
+        emailService.sendVerificationCode(pending.getEmail(), code);
 
-        return new EmailVerificationResponse(savedUser.getEmail(), "Verification code sent to your email.");
+        return new EmailVerificationResponse(pending.getEmail(), "Verification code sent to your email.");
     }
 
     // Confirms the emailed code and returns the real login token - this is
-    // the moment a freshly registered account actually becomes usable.
+    // the moment a freshly registered account actually gets created in
+    // `users` for the first time (see register() above).
     public AuthResponse verifyEmail(VerifyEmailRequest request){
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            boolean codeMatches = user.getVerificationCode() != null
-                    && user.getVerificationCode().equals(request.getCode());
-            boolean notExpired = user.getVerificationCodeExpiresAt() != null
-                    && user.getVerificationCodeExpiresAt().isAfter(LocalDateTime.now());
-
-            if (!codeMatches || !notExpired) {
-                throw new InvalidCredentialsException("Invalid or expired verification code");
-            }
-
-            user.setEmailVerified(true);
-            user.setVerificationCode(null);
-            user.setVerificationCodeExpiresAt(null);
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
+        // Already a real account (e.g. a duplicate submit of this screen
+        // after it already succeeded once) - just re-issue a token instead
+        // of erroring, matching the previous behavior.
+        Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
+        if (existingUser.isPresent()) {
+            return issueTokenFor(existingUser.get());
         }
 
+        PendingRegistration pending = pendingRegistrationRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("No pending registration found for this email - please sign up again"));
+
+        boolean codeMatches = pending.getVerificationCode() != null
+                && pending.getVerificationCode().equals(request.getCode());
+        boolean notExpired = pending.getVerificationCodeExpiresAt() != null
+                && pending.getVerificationCodeExpiresAt().isAfter(LocalDateTime.now());
+
+        if (!codeMatches || !notExpired) {
+            throw new InvalidCredentialsException("Invalid or expired verification code");
+        }
+
+        // Guards the rare race where two people started registering the
+        // same email/username while both were still pending - whichever
+        // verifies first wins; the second gets a clear error here instead
+        // of silently overwriting/duplicating an account.
+        if (userRepository.existsByEmail(pending.getEmail())) {
+            throw new EmailAlreadyExistsException("Email already exists");
+        }
+        if (userRepository.existsByUsername(pending.getUsername())) {
+            throw new UsernameAlreadyExistsException("Username already exists");
+        }
+
+        User savedUser = User.builder()
+                .email(pending.getEmail())
+                .username(pending.getUsername())
+                .password(pending.getPassword())
+                .fullName(pending.getFullName())
+                .favouriteClub(pending.getFavouriteClub())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .emailVerified(true)
+                .build();
+        userRepository.save(savedUser);
+        pendingRegistrationRepository.delete(pending);
+
+        return issueTokenFor(savedUser);
+    }
+
+    public EmailVerificationResponse resendVerification(String email){
+        if (userRepository.existsByEmail(email)) {
+            return new EmailVerificationResponse(email, "This account is already verified - just log in.");
+        }
+
+        PendingRegistration pending = pendingRegistrationRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No pending registration found for this email - please sign up again"));
+
+        String code = generateVerificationCode();
+        pending.setVerificationCode(code);
+        pending.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_VALID_MINUTES));
+        pendingRegistrationRepository.save(pending);
+
+        emailService.sendVerificationCode(pending.getEmail(), code);
+
+        return new EmailVerificationResponse(pending.getEmail(), "Verification code sent to your email.");
+    }
+
+    private AuthResponse issueTokenFor(User user){
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(userDetails);
 
@@ -124,24 +178,6 @@ public class AuthService {
         response.setUsername(user.getUsername());
         response.setRole(user.getRole().name());
         return response;
-    }
-
-    public EmailVerificationResponse resendVerification(String email){
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            return new EmailVerificationResponse(user.getEmail(), "This account is already verified - just log in.");
-        }
-
-        String code = generateVerificationCode();
-        user.setVerificationCode(code);
-        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_VALID_MINUTES));
-        userRepository.save(user);
-
-        emailService.sendVerificationCode(user.getEmail(), code);
-
-        return new EmailVerificationResponse(user.getEmail(), "Verification code sent to your email.");
     }
 
     // Always returns the same generic response whether or not the email
