@@ -138,6 +138,7 @@ public class FixtureService {
                 .awayClubName(fixture.getAwayClub().getFullName())
                 .homeClubName(fixture.getHomeClub().getFullName())
                 .matchDate(fixture.getMatchDate())
+                .season(fixture.getGameweek().getSeason())
                 .gameweekNumber(fixture.getGameweek().getGameweekNumber())
                 .homeScore(results != null ? results.getHomeScore() : null)
                 .awayScore(results != null ? results.getAwayScore() : null)

@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FixtureResponse {
     private Integer id;
+    private String season;
     private Integer gameweekNumber;
     private String homeClubName;
     private String awayClubName;

@@ -1,5 +1,6 @@
 package com.augustine.gplfantasyleaague.domain.prediction.service;
 
+import com.augustine.gplfantasyleaague.domain.auth.entity.Role;
 import com.augustine.gplfantasyleaague.domain.auth.entity.User;
 import com.augustine.gplfantasyleaague.domain.auth.repository.UserRepository;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.Fixture;
@@ -96,6 +97,9 @@ public class PredictionService {
 
         List<User> ranked = userRepository.findAllByOrderByPredictionPointsDesc().stream()
                 .filter(user -> participantIds.contains(user.getId()))
+                // Admin accounts aren't real players - keep the leaderboard
+                // to actual users only.
+                .filter(user -> user.getRole() != Role.ADMIN)
                 .toList();
 
         List<PredictionLeaderboardEntry> leaderboard = new java.util.ArrayList<>();
