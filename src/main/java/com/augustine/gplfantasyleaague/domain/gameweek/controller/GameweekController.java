@@ -45,4 +45,17 @@ public class GameweekController {
     public ResponseEntity<GameweekResponse> setIsCuurent(@PathVariable Integer id){
         return ResponseEntity.ok(gameweekService.setCurrentGameweek(id));
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<GameweekResponse> updateGameweek(@PathVariable Integer id, @RequestBody @Valid GameweekRequest request){
+        return ResponseEntity.ok(gameweekService.updateGameweek(id, request));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteGameweek(@PathVariable Integer id){
+        gameweekService.deleteGameweek(id);
+        return ResponseEntity.noContent().build();
+    }
 }

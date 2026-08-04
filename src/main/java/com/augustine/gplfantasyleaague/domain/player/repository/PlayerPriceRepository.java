@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface PlayerPriceRepository extends JpaRepository<PlayerPrice, Integer> {
     Optional<PlayerPrice> findTopByPlayerIdOrderByRecordedAtDesc(Integer playerId);
     List<PlayerPrice> findByPlayerId(Integer playerId);
+    boolean existsByGameweekId(Integer gameweekId);
 }

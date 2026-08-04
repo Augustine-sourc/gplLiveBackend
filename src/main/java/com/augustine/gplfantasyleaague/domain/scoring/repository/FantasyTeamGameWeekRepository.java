@@ -15,4 +15,6 @@ public interface FantasyTeamGameWeekRepository extends JpaRepository<FantasyTeam
     Optional<FantasyTeamGameWeekScore> findByFantasyTeamIdAndGameweekId(Integer id, Integer gameweekId);
 
     void deleteByFantasyTeamId(Integer fantasyTeamId);
+
+    boolean existsByGameweekId(Integer gameweekId);
 }

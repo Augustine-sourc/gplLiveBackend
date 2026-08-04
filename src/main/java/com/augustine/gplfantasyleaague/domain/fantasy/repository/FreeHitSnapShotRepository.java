@@ -8,5 +8,5 @@ import java.util.List;
 public interface FreeHitSnapShotRepository extends JpaRepository<FreeHitSnapShot, Integer> {
     List<FreeHitSnapShot> findByFantasyTeamIdAndGameweekId(Integer fantasyTeamId, Integer gameweekId);
     void deleteByFantasyTeamIdAndGameweekId(Integer fantasyTeamId, Integer gameweekId);
-    void deleteByFantasyTeamId(Integer fantasyTeamId);
+    boolean existsByGameweekId(Integer gameweekId);
 }

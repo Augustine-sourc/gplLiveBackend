@@ -15,4 +15,6 @@ public interface ChipRepository extends JpaRepository<Chip, Integer> {
     List<Chip> findByGameweekIdAndChipType(Integer gameweekId, ChipType chipType);
 
     void deleteByFantasyTeamId(Integer fantasyTeamId);
+
+    boolean existsByGameweekId(Integer gameweekId);
 }
