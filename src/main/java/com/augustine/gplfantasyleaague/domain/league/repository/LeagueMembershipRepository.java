@@ -25,4 +25,13 @@ public interface LeagueMembershipRepository extends JpaRepository<LeagueMembersh
     // (see LeagueService.MAX_ACTIVE_MEMBERSHIPS) - only ACTIVE counts,
     // pending requests don't tie up a "slot" until accepted.
     long countByUserIdAndStatus(Integer userId, MembershipStatus status);
+
+    // Fantasy-team deletion cleanup (see FantasyTeamService.deleteMyFantasyTeam)
+    // - a league membership means nothing once its owner has no squad to
+    // score, so every row (ACTIVE and PENDING alike) goes, not just one
+    // league's worth. Deliberately unrelated to League.creator, which is
+    // its own FK straight to User - deleting a Fantasy team doesn't touch
+    // leagues someone owns, only their own membership row in any league
+    // (including one of their own).
+    void deleteByUserId(Integer userId);
 }

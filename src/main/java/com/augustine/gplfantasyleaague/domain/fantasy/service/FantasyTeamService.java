@@ -11,8 +11,10 @@ import com.augustine.gplfantasyleaague.domain.fantasy.entity.FantasyTeam;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.ChipRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.FantasyTeamPlayerRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.FantasyTeamRepository;
+import com.augustine.gplfantasyleaague.domain.fantasy.repository.FreeHitSnapShotRepository;
 import com.augustine.gplfantasyleaague.domain.fantasy.repository.TransferRepository;
 import com.augustine.gplfantasyleaague.domain.gameweek.repository.GameweekRepository;
+import com.augustine.gplfantasyleaague.domain.league.repository.LeagueMembershipRepository;
 import com.augustine.gplfantasyleaague.domain.scoring.repository.FantasyTeamGameWeekRepository;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import com.augustine.gplfantasyleaague.exception.TeamCreationException;
@@ -34,12 +36,15 @@ public class FantasyTeamService {
     private final ChipRepository chipRepository;
     private final FantasyTeamGameWeekRepository fantasyTeamGameWeekRepository;
     private final GameweekRepository gameweekRepository;
+    private final FreeHitSnapShotRepository freeHitSnapShotRepository;
+    private final LeagueMembershipRepository leagueMembershipRepository;
 
 
     public FantasyTeamService(UserRepository userRepository, FantasyTeamRepository fantasyTeamRepository,
                                FantasyTeamPlayerRepository fantasyTeamPlayerRepository, TransferRepository transferRepository,
                                ChipRepository chipRepository, FantasyTeamGameWeekRepository fantasyTeamGameWeekRepository,
-                               GameweekRepository gameweekRepository) {
+                               GameweekRepository gameweekRepository, FreeHitSnapShotRepository freeHitSnapShotRepository,
+                               LeagueMembershipRepository leagueMembershipRepository) {
         this.userRepository = userRepository;
         this.fantasyTeamRepository = fantasyTeamRepository;
         this.fantasyTeamPlayerRepository = fantasyTeamPlayerRepository;
@@ -47,6 +52,8 @@ public class FantasyTeamService {
         this.chipRepository = chipRepository;
         this.fantasyTeamGameWeekRepository = fantasyTeamGameWeekRepository;
         this.gameweekRepository = gameweekRepository;
+        this.freeHitSnapShotRepository = freeHitSnapShotRepository;
+        this.leagueMembershipRepository = leagueMembershipRepository;
     }
 
     public FantasyTeamResponse createFantasyTeam(FantasyTeamRequest request, String email){
@@ -104,14 +111,16 @@ public class FantasyTeamService {
 
     // Deletes children before the team row itself so this works regardless
     // of whether the DB's ON DELETE CASCADE (present on fantasy_team_players/
-    // transfers/chips/fantasy_team_gameweek_scores per the Flyway migrations)
-    // is relied on or not. NOTE: this deliberately does NOT touch
-    // free_hit_snapshots - that table has no migration that creates it, so
-    // querying/deleting against it throws (that was the actual cause of the
-    // "unexpected system error" on this endpoint before this fix). Lets a
-    // user (or, mainly right now, a tester) fully reset and rebuild a squad
-    // from scratch, since createFantasyTeam otherwise permanently blocks a
-    // second team per user.
+    // transfers/chips/fantasy_team_gameweek_scores/free_hit_snapshots per the
+    // Flyway migrations) is relied on or not - explicit deletes here mean
+    // Hibernate's persistence context stays in sync within this same
+    // transaction too, not just the database underneath it. free_hit_snapshots
+    // (V29) used to be skipped here because, at the time, no migration
+    // created that table at all and touching it threw "relation
+    // free_hit_snapshots does not exist" - V29 has existed for a while now,
+    // so it's included below like everything else. Lets a user fully reset
+    // and rebuild a squad from scratch, since createFantasyTeam otherwise
+    // permanently blocks a second team per user.
     @Transactional
     public void deleteMyFantasyTeam(String email){
         User user = userRepository.findByEmail(email).orElseThrow(()-> new ResourceNotFoundException("User not found"));
@@ -136,6 +145,17 @@ public class FantasyTeamService {
         transferRepository.deleteByFantasyTeamId(teamId);
         chipRepository.deleteByFantasyTeamId(teamId);
         fantasyTeamGameWeekRepository.deleteByFantasyTeamId(teamId);
+        freeHitSnapShotRepository.deleteByFantasyTeamId(teamId);
+        // Leagues now require a Fantasy team to be an active member (see
+        // LeagueService.requireHasFantasyTeam) - without one there's no
+        // Fantasy points to rank, so drop every membership row this user
+        // has (ACTIVE and PENDING alike), in any league, including one they
+        // created. This is keyed by user, not team, and is separate from
+        // League.creator (its own FK to User) - a league they own keeps
+        // existing and they keep admin rights over it (accept/reject/
+        // delete), they just fall off its own leaderboard until they
+        // rebuild a squad and rejoin.
+        leagueMembershipRepository.deleteByUserId(user.getId());
         fantasyTeamRepository.delete(team);
     }
 
