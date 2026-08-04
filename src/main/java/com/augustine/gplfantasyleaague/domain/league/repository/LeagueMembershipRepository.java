@@ -20,4 +20,9 @@ public interface LeagueMembershipRepository extends JpaRepository<LeagueMembersh
     // Capacity check on join/accept - member_limit only counts ACTIVE
     // members, not pending requests.
     long countByLeagueIdAndStatus(Integer leagueId, MembershipStatus status);
+
+    // Per-user cap on how many leagues someone can actually be part of
+    // (see LeagueService.MAX_ACTIVE_MEMBERSHIPS) - only ACTIVE counts,
+    // pending requests don't tie up a "slot" until accepted.
+    long countByUserIdAndStatus(Integer userId, MembershipStatus status);
 }

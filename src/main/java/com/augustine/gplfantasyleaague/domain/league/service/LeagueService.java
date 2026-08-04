@@ -52,6 +52,12 @@ public class LeagueService {
     // phone screen to type into another one.
     private static final String INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int MAX_INVITE_CODE_ATTEMPTS = 10;
+    // Keeps one account from spamming the browse list with leagues, or
+    // spreading themselves across so many leagues the leaderboards stop
+    // meaning anything. Creating a league also counts as a membership slot
+    // (the creator becomes an ACTIVE member of their own league).
+    private static final int MAX_LEAGUES_CREATED = 5;
+    private static final int MAX_ACTIVE_MEMBERSHIPS = 15;
 
     private final LeagueRepository leagueRepository;
     private final LeagueMembershipRepository membershipRepository;
@@ -73,6 +79,9 @@ public class LeagueService {
     @Transactional
     public LeagueResponse createLeague(LeagueCreateRequest request, String email) {
         User creator = requireUser(email);
+        requireHasFantasyTeam(creator);
+        requireUnderCreateCap(creator);
+        requireUnderJoinCap(creator);
         boolean isPublic = request.getIsPublic() == null || request.getIsPublic();
 
         League league = League.builder()
@@ -176,6 +185,7 @@ public class LeagueService {
         if (league.getCreator().getId().equals(user.getId())) {
             throw new InvalidLeagueException("You already own this league.");
         }
+        requireHasFantasyTeam(user);
         Optional<LeagueMembership> existing = membershipRepository.findByLeagueIdAndUserId(league.getId(), user.getId());
         if (existing.isPresent()) {
             boolean alreadyActive = existing.get().getStatus() == MembershipStatus.ACTIVE;
@@ -185,6 +195,11 @@ public class LeagueService {
         }
         if (targetStatus == MembershipStatus.ACTIVE) {
             requireRoomInLeague(league);
+            // A PENDING request doesn't tie up a membership slot, so this
+            // cap only applies on the path that becomes ACTIVE right away
+            // (public leagues). The same cap is re-checked in acceptRequest
+            // for the PENDING path, at the point it actually becomes ACTIVE.
+            requireUnderJoinCap(user);
         }
         membershipRepository.save(LeagueMembership.builder()
                 .league(league)
@@ -198,6 +213,27 @@ public class LeagueService {
         long activeCount = membershipRepository.countByLeagueIdAndStatus(league.getId(), MembershipStatus.ACTIVE);
         if (activeCount >= league.getMemberLimit()) {
             throw new InvalidLeagueException("This league is full.");
+        }
+    }
+
+    // Leaderboards only mean something if everyone in them is actually
+    // playing Fantasy - a league full of people with no squad has nothing
+    // to rank on the Fantasy side.
+    private void requireHasFantasyTeam(User user) {
+        if (!fantasyTeamRepository.existsByUserId(user.getId())) {
+            throw new InvalidLeagueException("You need a Fantasy team before you can join a league - build your squad first.");
+        }
+    }
+
+    private void requireUnderCreateCap(User user) {
+        if (leagueRepository.countByCreatorId(user.getId()) >= MAX_LEAGUES_CREATED) {
+            throw new InvalidLeagueException("You've reached the limit of " + MAX_LEAGUES_CREATED + " leagues you can create.");
+        }
+    }
+
+    private void requireUnderJoinCap(User user) {
+        if (membershipRepository.countByUserIdAndStatus(user.getId(), MembershipStatus.ACTIVE) >= MAX_ACTIVE_MEMBERSHIPS) {
+            throw new InvalidLeagueException("You've reached the limit of " + MAX_ACTIVE_MEMBERSHIPS + " leagues you can be part of.");
         }
     }
 
@@ -223,6 +259,11 @@ public class LeagueService {
         League league = requireOwnedLeague(leagueId, email);
         LeagueMembership membership = requirePendingMembership(league, userId);
         requireRoomInLeague(league);
+        // The requester may have joined other leagues since asking to join
+        // this one - re-check their personal cap now, right as the slot
+        // would actually get consumed (mirrors the league's own capacity
+        // check being done both at request-time and again here).
+        requireUnderJoinCap(membership.getUser());
 
         membership.setStatus(MembershipStatus.ACTIVE);
         membershipRepository.save(membership);

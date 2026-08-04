@@ -20,4 +20,9 @@ public interface LeagueRepository extends JpaRepository<League, Integer> {
     // (returns every league) since "Containing" against "" matches
     // everything - powers a plain "browse leagues" view for free.
     List<League> findByNameContainingIgnoreCase(String name);
+
+    // Per-user cap on how many leagues someone can create (see
+    // LeagueService.MAX_LEAGUES_CREATED) - stops one account from spamming
+    // the search/browse list with league after league.
+    long countByCreatorId(Integer creatorId);
 }
