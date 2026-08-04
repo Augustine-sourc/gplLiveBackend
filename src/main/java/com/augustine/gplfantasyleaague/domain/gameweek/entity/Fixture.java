@@ -48,6 +48,12 @@ public class Fixture {
     @Column(name = "status")
     private FixtureStatus fixtureStatus = FixtureStatus.SCHEDULED;
 
+    // High-stakes/rivalry fixture flag - admin-settable, carries a flat
+    // scoring bonus for predictions (see PredictionService).
+    @Builder.Default
+    @Column(name = "is_derby", nullable = false)
+    private Boolean isDerby = false;
+
     @OneToMany(mappedBy = "fixture")
     private List<MotmVotes> motmVotesList = new ArrayList<>();
 

@@ -7,6 +7,7 @@ import com.augustine.gplfantasyleaague.domain.gameweek.entity.FixtureResults;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.FixtureStatus;
 import com.augustine.gplfantasyleaague.domain.gameweek.repository.FixtureRepository;
 import com.augustine.gplfantasyleaague.domain.gameweek.repository.FixtureResultsRepository;
+import com.augustine.gplfantasyleaague.domain.prediction.service.PredictionService;
 import com.augustine.gplfantasyleaague.exception.InvalidFixtureException;
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -18,10 +19,12 @@ import java.util.List;
 public class FixtureResultsService {
     private final FixtureRepository fixtureRepository;
     private final FixtureResultsRepository fixtureResultsRepository;
+    private final PredictionService predictionService;
 
-    public FixtureResultsService(FixtureRepository fixtureRepository, FixtureResultsRepository fixtureResultsRepository) {
+    public FixtureResultsService(FixtureRepository fixtureRepository, FixtureResultsRepository fixtureResultsRepository, PredictionService predictionService) {
         this.fixtureRepository = fixtureRepository;
         this.fixtureResultsRepository = fixtureResultsRepository;
+        this.predictionService = predictionService;
     }
 
     public FixtureResultsResponse recordResults(FixtureResultsRequest request){
@@ -36,6 +39,12 @@ public class FixtureResultsService {
         FixtureResults results = saveToFixtureResultsDatabase(request, fixture);
         fixture.setFixtureStatus(FixtureStatus.FINISHED);
         Fixture updateFixture = fixtureRepository.save(fixture);
+
+        // Score every prediction made against this fixture now that the
+        // real result is in - see PredictionService.scoreFixture for the
+        // points formula.
+        predictionService.scoreFixture(updateFixture, results.getHomeScore(), results.getAwayScore());
+
         return mapToResponse(results);
     }
 

@@ -24,4 +24,7 @@ public class FixtureRequest {
 
     @NotBlank
     private String venue;
+
+    // Optional - defaults to false server-side if omitted.
+    private Boolean isDerby;
 }

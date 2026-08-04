@@ -159,6 +159,13 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex, request);
     }
 
+    // 400 Bad Request: Prediction submitted after kickoff, on a
+    // non-scheduled fixture, or with a malformed outcome
+    @ExceptionHandler(InvalidPredictionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPrediction(InvalidPredictionException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, request);
+    }
+
     // 409 Conflict: Duplicates or static data violations
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {

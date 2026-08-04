@@ -88,10 +88,18 @@ public class FixtureService {
                 .fixtureStatus(FixtureStatus.SCHEDULED)
                 .matchDate(request.getMatchDate())
                 .venue(request.getVenue())
+                .isDerby(Boolean.TRUE.equals(request.getIsDerby()))
                 .build();
         fixtureRepository.save(savedFixture);
         return mapToResponse(savedFixture);
 
+    }
+
+    public FixtureResponse setDerbyFlag(Integer id, boolean isDerby){
+        Fixture fixture = fixtureRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Fixture with ID " + id + " not found"));
+        fixture.setIsDerby(isDerby);
+        Fixture updatedFixture = fixtureRepository.save(fixture);
+        return mapToResponse(updatedFixture);
     }
 
     public FixtureResponse updatedFixtureStatus(Integer id, FixtureStatus status){
@@ -133,6 +141,7 @@ public class FixtureService {
                 .gameweekNumber(fixture.getGameweek().getGameweekNumber())
                 .homeScore(results != null ? results.getHomeScore() : null)
                 .awayScore(results != null ? results.getAwayScore() : null)
+                .isDerby(fixture.getIsDerby())
                 .build();
     }
 

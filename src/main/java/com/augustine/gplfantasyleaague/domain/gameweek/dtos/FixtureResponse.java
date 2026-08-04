@@ -22,4 +22,5 @@ public class FixtureResponse {
     // null until the match has actually been played/recorded.
     private Integer homeScore;
     private Integer awayScore;
+    private Boolean isDerby;
 }

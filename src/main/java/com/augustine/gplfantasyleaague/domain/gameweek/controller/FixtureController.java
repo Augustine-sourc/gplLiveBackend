@@ -61,4 +61,10 @@ public class FixtureController {
     public ResponseEntity<FixtureResponse> updatedFixtureStatus(@PathVariable Integer id, @RequestBody FixtureStatus status){
         return ResponseEntity.ok(fixtureService.updatedFixtureStatus(id, status));
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}/derby")
+    public ResponseEntity<FixtureResponse> setDerbyFlag(@PathVariable Integer id, @RequestBody boolean isDerby){
+        return ResponseEntity.ok(fixtureService.setDerbyFlag(id, isDerby));
+    }
 }

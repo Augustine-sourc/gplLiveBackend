@@ -70,6 +70,20 @@ public class User {
     @Column(name = "reset_code_expires_at")
     private LocalDateTime resetCodeExpiresAt;
 
+    // Running total for the Predictions leaderboard - incremented by
+    // PredictionService.scoreFixture() each time one of this user's
+    // predictions is scored (see domain/prediction).
+    @Builder.Default
+    @Column(name = "prediction_points", nullable = false)
+    private Integer predictionPoints = 0;
+
+    // Consecutive correct-outcome predictions (in the order they're scored) -
+    // drives the 1.25x/1.5x streak multiplier. Resets to 0 the moment a
+    // wrong-outcome prediction is scored.
+    @Builder.Default
+    @Column(name = "prediction_streak", nullable = false)
+    private Integer predictionStreak = 0;
+
     @OneToOne(mappedBy = "user")
     private FantasyTeam fantasyTeam;
 
