@@ -1,6 +1,8 @@
 package com.augustine.gplfantasyleaague.domain.standings.service;
 
 import com.augustine.gplfantasyleaague.domain.club.entity.Club;
+import com.augustine.gplfantasyleaague.domain.club.entity.ClubStatus;
+import com.augustine.gplfantasyleaague.domain.club.repository.ClubRepository;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.Fixture;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.FixtureResults;
 import com.augustine.gplfantasyleaague.domain.gameweek.entity.FixtureStatus;
@@ -29,18 +31,29 @@ public class StandingsService {
 
     private final FixtureRepository fixtureRepository;
     private final GameweekRepository gameweekRepository;
+    private final ClubRepository clubRepository;
 
-    public StandingsService(FixtureRepository fixtureRepository, GameweekRepository gameweekRepository) {
+    public StandingsService(FixtureRepository fixtureRepository, GameweekRepository gameweekRepository,
+                             ClubRepository clubRepository) {
         this.fixtureRepository = fixtureRepository;
         this.gameweekRepository = gameweekRepository;
+        this.clubRepository = clubRepository;
     }
 
     public StandingsResponse getStandings(String requestedSeason) {
         String season = (requestedSeason != null && !requestedSeason.isBlank())
                 ? requestedSeason
-                : resolveSeasonWithResults();
+                : resolveDefaultSeason();
 
         List<Fixture> fixtures = fixtureRepository.findByFixtureStatusAndSeason(FixtureStatus.FINISHED, season);
+
+        // A brand-new season (like 2026/2027 before it kicks off) has zero
+        // finished fixtures - a real league table still lists every club at
+        // 0 played/0 points at that point, it doesn't go blank or fall back
+        // to showing a past season's final table.
+        if (fixtures.isEmpty()) {
+            return buildZeroStandings(season);
+        }
 
         Map<Integer, ClubStats> statsByClubId = new LinkedHashMap<>();
         for (Fixture fixture : fixtures) {
@@ -121,21 +134,33 @@ public class StandingsService {
                         .orElseThrow(() -> new ResourceNotFoundException("No gameweek data available to compute standings")));
     }
 
-    // The "current" season (is_current gameweek) is also the DEFAULT one
-    // shown - but a brand-new season has zero finished fixtures the moment
-    // it becomes current, which would otherwise make the table just empty
-    // the instant a new season starts. Falls back to the most recent season
-    // (by season string, which sorts correctly for this app's "YYYY/YYYY"
-    // convention) that actually has at least one recorded result, so users
-    // see last season's final table until this one has games played.
-    private String resolveSeasonWithResults() {
-        String preferred = resolveDefaultSeason();
-        if (!fixtureRepository.findByFixtureStatusAndSeason(FixtureStatus.FINISHED, preferred).isEmpty()) {
-            return preferred;
+    // Clubs aren't season-scoped in this app (one flat "real_clubs" table,
+    // no per-season roster) - so "every team in the league at 0" just means
+    // every ACTIVE club, alphabetically, each with a clean StandingRow.
+    // RELEGATED/WITHDRAWN/SUSPENDED clubs are excluded, same as they would
+    // be from any real table.
+    private StandingsResponse buildZeroStandings(String season) {
+        List<StandingRowResponse> rows = new ArrayList<>();
+        int position = 1;
+        for (Club club : clubRepository.findByClubStatus(ClubStatus.ACTIVE).stream()
+                .sorted(Comparator.comparing(Club::getFullName))
+                .toList()) {
+            rows.add(StandingRowResponse.builder()
+                    .position(position++)
+                    .clubId(club.getId())
+                    .clubName(club.getFullName())
+                    .shortName(club.getShortName())
+                    .played(0)
+                    .won(0)
+                    .drawn(0)
+                    .lost(0)
+                    .goalsFor(0)
+                    .goalsAgainst(0)
+                    .goalDifference(0)
+                    .points(0)
+                    .build());
         }
-        return fixtureRepository.findDistinctSeasonsByFixtureStatus(FixtureStatus.FINISHED).stream()
-                .max(Comparator.naturalOrder())
-                .orElse(preferred);
+        return StandingsResponse.builder().season(season).standings(rows).build();
     }
 
     private static class ClubStats {
