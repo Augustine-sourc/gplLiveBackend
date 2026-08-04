@@ -92,19 +92,35 @@ public class PredictionService {
     }
 
     public List<PredictionLeaderboardEntry> getLeaderboard(){
-        List<User> ranked = userRepository.findAllByOrderByPredictionPointsDesc();
-        return java.util.stream.IntStream.range(0, ranked.size())
-                .mapToObj(i -> {
-                    User user = ranked.get(i);
-                    return PredictionLeaderboardEntry.builder()
-                            .rank(i + 1)
-                            .userId(user.getId())
-                            .username(user.getUsername())
-                            .predictionPoints(user.getPredictionPoints())
-                            .predictionStreak(user.getPredictionStreak())
-                            .build();
-                })
+        java.util.Set<Integer> participantIds = new java.util.HashSet<>(predictionRepository.findDistinctUserIds());
+
+        List<User> ranked = userRepository.findAllByOrderByPredictionPointsDesc().stream()
+                .filter(user -> participantIds.contains(user.getId()))
                 .toList();
+
+        List<PredictionLeaderboardEntry> leaderboard = new java.util.ArrayList<>();
+        int rank = 0;
+        Integer previousPoints = null;
+        for (int i = 0; i < ranked.size(); i++) {
+            User user = ranked.get(i);
+            // Competition ("1224") ranking - tied users share a rank, and the
+            // next distinct score picks up at its true position rather than
+            // the next integer (two people tied for 1st are both rank 1, the
+            // next person is rank 3, not rank 2).
+            if (previousPoints == null || !previousPoints.equals(user.getPredictionPoints())) {
+                rank = i + 1;
+            }
+            previousPoints = user.getPredictionPoints();
+
+            leaderboard.add(PredictionLeaderboardEntry.builder()
+                    .rank(rank)
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .predictionPoints(user.getPredictionPoints())
+                    .predictionStreak(user.getPredictionStreak())
+                    .build());
+        }
+        return leaderboard;
     }
 
     // Called from FixtureResultsService.recordResults() once a fixture is

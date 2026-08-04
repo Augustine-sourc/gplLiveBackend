@@ -18,6 +18,13 @@ public interface PredictionRepository extends JpaRepository<Prediction, Integer>
     // FixtureResultsService.recordResults() marks it FINISHED.
     List<Prediction> findByFixtureIdAndScoredFalse(Integer fixtureId);
 
+    // Users who have made at least one prediction, ever - the leaderboard
+    // uses this to exclude accounts that have never played (who'd otherwise
+    // clutter the bottom of the list tied on 0 points same as someone who
+    // played and got every pick wrong).
+    @Query("SELECT DISTINCT p.user.id FROM Prediction p")
+    List<Integer> findDistinctUserIds();
+
     // Clears any other Banker the user already has this gameweek before a
     // new one is set - the partial unique index in V31 is the hard backstop,
     // this is what makes "switch your Banker to a different fixture" work
