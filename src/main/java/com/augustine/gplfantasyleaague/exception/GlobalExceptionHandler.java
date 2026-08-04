@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
@@ -194,6 +196,24 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    // 400 Bad Request: a required @RequestParam (e.g. ?season=) was left out
+    // of the request entirely. Spring would normally turn this into a 400
+    // on its own, but it was falling through to the generic 500 handler
+    // below since this exception type had no explicit handler here -
+    // surfacing as an opaque "server error" for what's actually a malformed
+    // client request.
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, request);
+    }
+
+    // 400 Bad Request: a @RequestParam/@PathVariable was present but the
+    // wrong type (e.g. ?gameweekNumber=abc where an Integer is expected).
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, request);
     }
 
     // 500 Internal Server Error (Fallback for unexpected system exceptions)

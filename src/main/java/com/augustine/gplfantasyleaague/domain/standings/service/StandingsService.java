@@ -38,7 +38,7 @@ public class StandingsService {
     public StandingsResponse getStandings(String requestedSeason) {
         String season = (requestedSeason != null && !requestedSeason.isBlank())
                 ? requestedSeason
-                : resolveDefaultSeason();
+                : resolveSeasonWithResults();
 
         List<Fixture> fixtures = fixtureRepository.findByFixtureStatusAndSeason(FixtureStatus.FINISHED, season);
 
@@ -119,6 +119,23 @@ public class StandingsService {
                 .orElseGet(() -> gameweekRepository.findTopByOrderByEndDateDesc()
                         .map(Gameweek::getSeason)
                         .orElseThrow(() -> new ResourceNotFoundException("No gameweek data available to compute standings")));
+    }
+
+    // The "current" season (is_current gameweek) is also the DEFAULT one
+    // shown - but a brand-new season has zero finished fixtures the moment
+    // it becomes current, which would otherwise make the table just empty
+    // the instant a new season starts. Falls back to the most recent season
+    // (by season string, which sorts correctly for this app's "YYYY/YYYY"
+    // convention) that actually has at least one recorded result, so users
+    // see last season's final table until this one has games played.
+    private String resolveSeasonWithResults() {
+        String preferred = resolveDefaultSeason();
+        if (!fixtureRepository.findByFixtureStatusAndSeason(FixtureStatus.FINISHED, preferred).isEmpty()) {
+            return preferred;
+        }
+        return fixtureRepository.findDistinctSeasonsByFixtureStatus(FixtureStatus.FINISHED).stream()
+                .max(Comparator.naturalOrder())
+                .orElse(preferred);
     }
 
     private static class ClubStats {
