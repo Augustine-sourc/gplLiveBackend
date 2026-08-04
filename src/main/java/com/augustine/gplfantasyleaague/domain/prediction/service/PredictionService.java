@@ -92,11 +92,12 @@ public class PredictionService {
                 .toList();
     }
 
+    // Lists every non-admin user, not just ones who've submitted a
+    // prediction - so the leaderboard shows the whole league from day one
+    // (everyone else sitting at 0) instead of looking empty/broken until
+    // more people start predicting.
     public List<PredictionLeaderboardEntry> getLeaderboard(){
-        java.util.Set<Integer> participantIds = new java.util.HashSet<>(predictionRepository.findDistinctUserIds());
-
         List<User> ranked = userRepository.findAllByOrderByPredictionPointsDesc().stream()
-                .filter(user -> participantIds.contains(user.getId()))
                 // Admin accounts aren't real players - keep the leaderboard
                 // to actual users only.
                 .filter(user -> user.getRole() != Role.ADMIN)

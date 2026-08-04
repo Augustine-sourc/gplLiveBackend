@@ -72,6 +72,14 @@ public class GameweekService {
                 .toList();
     }
 
+    // Powers the Table/Fixtures season chevrons and search validation - the
+    // full list of seasons that actually have data, so the frontend can
+    // tell "no data for this season yet" from "this season doesn't exist"
+    // without guessing from an empty result list.
+    public List<String> getAllSeasons(){
+        return gameweekRepository.findDistinctSeasonsOrderBySeasonAsc();
+    }
+
     public GameweekResponse createGameweek(GameweekRequest request){
         Gameweek saveGameweek = saveToDatabase(request);
         return mapToResponse(saveGameweek);

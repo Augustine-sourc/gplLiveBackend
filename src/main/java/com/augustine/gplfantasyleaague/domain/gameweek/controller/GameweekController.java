@@ -39,6 +39,14 @@ public class GameweekController {
         return ResponseEntity.ok(gameweekService.getGameweekBySeason(season));
     }
 
+    // Every season that has data, oldest first - lets the Fixtures/Table
+    // screens build season chevrons and give a real "we don't have records
+    // for that season" message instead of guessing from an empty list.
+    @GetMapping("/seasons")
+    public ResponseEntity<List<String>> getAllSeasons(){
+        return ResponseEntity.ok(gameweekService.getAllSeasons());
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<GameweekResponse> createGameWeek(@RequestBody @Valid GameweekRequest request){

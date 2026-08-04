@@ -41,9 +41,21 @@ public class StandingsService {
     }
 
     public StandingsResponse getStandings(String requestedSeason) {
-        String season = (requestedSeason != null && !requestedSeason.isBlank())
-                ? requestedSeason
-                : resolveDefaultSeason();
+        String season;
+        if (requestedSeason != null && !requestedSeason.isBlank()) {
+            // A season that has literally never had a gameweek created for
+            // it (e.g. someone searches 2017/2018, long before this app's
+            // records start) is a different situation from a real season
+            // that just hasn't had any results recorded yet - give that a
+            // clear 404 instead of quietly rendering a normal-looking zero
+            // table for a season that doesn't exist.
+            if (!gameweekRepository.existsBySeason(requestedSeason)) {
+                throw new ResourceNotFoundException(noRecordsMessage(requestedSeason));
+            }
+            season = requestedSeason;
+        } else {
+            season = resolveDefaultSeason();
+        }
 
         List<Fixture> fixtures = fixtureRepository.findByFixtureStatusAndSeason(FixtureStatus.FINISHED, season);
 
@@ -132,6 +144,16 @@ public class StandingsService {
                 .orElseGet(() -> gameweekRepository.findTopByOrderByEndDateDesc()
                         .map(Gameweek::getSeason)
                         .orElseThrow(() -> new ResourceNotFoundException("No gameweek data available to compute standings")));
+    }
+
+    // "No gameweeks for 2017/2018" on its own doesn't tell the user why -
+    // naming the earliest season we actually have data for makes it obvious
+    // this isn't a bug, the app's records just don't go back that far.
+    private String noRecordsMessage(String requestedSeason) {
+        return gameweekRepository.findDistinctSeasonsOrderBySeasonAsc().stream()
+                .findFirst()
+                .map(earliest -> "No records exist for the " + requestedSeason + " season - our data starts from " + earliest + ".")
+                .orElse("No records exist for the " + requestedSeason + " season.");
     }
 
     // Clubs aren't season-scoped in this app (one flat "real_clubs" table,
