@@ -168,6 +168,14 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex, request);
     }
 
+    // 400 Bad Request: league join/leave/create business-rule violations
+    // (already a member, league full, wrong join path for a private league,
+    // etc.)
+    @ExceptionHandler(InvalidLeagueException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidLeague(InvalidLeagueException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, request);
+    }
+
     // 409 Conflict: Duplicates or static data violations
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
