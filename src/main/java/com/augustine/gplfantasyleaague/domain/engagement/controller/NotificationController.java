@@ -43,4 +43,12 @@ public class NotificationController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(notificationService.markAsRead(id,email));
     }
+
+    // Bulk mark-read, powering the inbox's "Mark all read" button in one
+    // request instead of N. Returns how many notifications were flipped.
+    @PatchMapping("/mark-all-as-read")
+    public ResponseEntity<Integer> markAllAsRead(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(notificationService.markAllAsRead(email));
+    }
 }

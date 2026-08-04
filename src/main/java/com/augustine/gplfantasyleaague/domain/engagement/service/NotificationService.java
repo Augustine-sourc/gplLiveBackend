@@ -9,6 +9,7 @@ import com.augustine.gplfantasyleaague.domain.engagement.repository.Notification
 import com.augustine.gplfantasyleaague.exception.ResourceNotFoundException;
 import com.augustine.gplfantasyleaague.exception.UnauthorizedAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,6 +48,15 @@ public class NotificationService {
         notification.setIsRead(true);
         Notification updatedNotification = notificationRepository.save(notification);
         return mapToResponse(updatedNotification);
+    }
+
+    // Real bulk mark-read, replacing the frontend's old workaround of firing
+    // one PATCH per unread notification (there was no endpoint for this at
+    // all before). Returns how many were actually flipped.
+    @Transactional
+    public int markAllAsRead(String email){
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User with email " + email + " not found"));
+        return notificationRepository.markAllAsReadByUserId(user.getId());
     }
 
     public List<NotificationResponse> getUnreadNotification(String email){
