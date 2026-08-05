@@ -1,6 +1,7 @@
 package com.augustine.gplfantasyleaague.domain.auth.controller;
 
 import com.augustine.gplfantasyleaague.domain.auth.dto.AuthResponse;
+import com.augustine.gplfantasyleaague.domain.auth.dto.ChangePasswordRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.EmailVerificationResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.ForgotPasswordRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.GoogleAuthRequest;
@@ -9,6 +10,7 @@ import com.augustine.gplfantasyleaague.domain.auth.dto.RegisterRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.ResendVerificationRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.ResetPasswordRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UpdateFavouriteClubRequest;
+import com.augustine.gplfantasyleaague.domain.auth.dto.UpdateUsernameRequest;
 import com.augustine.gplfantasyleaague.domain.auth.dto.UserProfileResponse;
 import com.augustine.gplfantasyleaague.domain.auth.dto.VerifyEmailRequest;
 import com.augustine.gplfantasyleaague.domain.auth.service.AuthService;
@@ -73,5 +75,17 @@ public class AuthController {
     public ResponseEntity<UserProfileResponse> updateFavouriteClub(@RequestBody @Valid UpdateFavouriteClubRequest request){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(authService.updateFavouriteClub(email, request.getFavouriteClubId()));
+    }
+
+    @PatchMapping("/users/me/username")
+    public ResponseEntity<UserProfileResponse> updateUsername(@RequestBody @Valid UpdateUsernameRequest request){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(authService.updateUsername(email, request.getUsername()));
+    }
+
+    @PatchMapping("/users/me/password")
+    public ResponseEntity<UserProfileResponse> changePassword(@RequestBody @Valid ChangePasswordRequest request){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(authService.changePassword(email, request.getCurrentPassword(), request.getNewPassword()));
     }
 }

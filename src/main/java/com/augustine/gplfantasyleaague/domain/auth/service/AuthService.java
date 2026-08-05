@@ -367,6 +367,43 @@ public class AuthService {
         return mapToProfileResponse(updatedUser);
     }
 
+    // Username is otherwise only ever set once, at registration - this is
+    // the sole path for changing it afterwards, so it re-runs the same
+    // uniqueness check register() does (minus the trivial "renaming to your
+    // own current username" case, which would otherwise self-conflict).
+    public UserProfileResponse updateUsername(String email, String newUsername){
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        String trimmed = newUsername.trim();
+        if (!trimmed.equalsIgnoreCase(user.getUsername()) && userRepository.existsByUsername(trimmed)) {
+            throw new UsernameAlreadyExistsException("Username already exists");
+        }
+
+        user.setUsername(trimmed);
+        user.setUpdatedAt(LocalDateTime.now());
+        User updatedUser = userRepository.save(user);
+        return mapToProfileResponse(updatedUser);
+    }
+
+    // Requires the current password (not just a valid session) before
+    // accepting a new one - the same "prove you're still you" step FPL and
+    // most account-settings forms require, since a JWT alone could be
+    // sitting in a shared/unlocked device.
+    public UserProfileResponse changePassword(String email, String currentPassword, String newPassword){
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        User updatedUser = userRepository.save(user);
+        return mapToProfileResponse(updatedUser);
+    }
+
     private UserProfileResponse mapToProfileResponse(User user){
         ClubSummary clubSummary = null;
         if (user.getFavouriteClub() != null) {
